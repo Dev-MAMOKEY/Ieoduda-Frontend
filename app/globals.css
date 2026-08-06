@@ -1,1 +1,25 @@
+/* Tailwind를 불러오고 애플리케이션 전체에 적용되는 기본 브라우저 스타일을 정의합니다. */
 @import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "SUITE", "Pretendard", "Noto Sans KR", Arial, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
