@@ -4,122 +4,34 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BackButton } from "@/components/shared/ui/BackButton";
-
-type SelectionKey =
-  | "socialAccount"
-  | "obituary"
-  | "workAccount"
-  | "workHandover"
-  | "waitingPeriod"
-  | "objectionContact";
-
-type PlanFormValues = Record<SelectionKey, string> & {
-  name: string;
-  message: string;
-};
+import { ChoiceGroup } from "./components/ChoiceGroup";
+import { SectionTitle, Subsection } from "./components/PlanFormHeadings";
+import {
+  emptyPlanValues,
+  existingPlanValues,
+  planOptions,
+} from "./data/planFormData";
+import type {
+  PlanFormValues,
+  PlanSelectionKey,
+  RequiredPlanField,
+} from "./model/planTypes";
 
 type PlanFormProps = {
   editMode: boolean;
 };
 
-const emptyValues: PlanFormValues = {
-  name: "",
-  message: "",
-  socialAccount: "",
-  obituary: "",
-  workAccount: "",
-  workHandover: "",
-  waitingPeriod: "",
-  objectionContact: "",
-};
-
-const existingPlanValues: PlanFormValues = {
-  name: "나의 계획",
-  message: "가족･친구･지인에게 전달할 메시지",
-  socialAccount: "삭제",
-  obituary: "전달",
-  workAccount: "인수인계",
-  workHandover: "인수인계",
-  waitingPeriod: "14일",
-  objectionContact: "등록",
-};
-
 const fieldClassName =
   "h-[45px] w-full rounded-[20px] border bg-white px-5 text-sm text-[#28292e] outline-none placeholder:text-[#a8a8a8] focus-visible:ring-2 lg:h-[52px] lg:rounded-[30px] lg:text-base";
-
-function ChoiceGroup({
-  selectionKey,
-  options,
-  value,
-  onSelect,
-  equalWidth = false,
-  desktopColumns,
-  invalid = false,
-}: {
-  selectionKey: SelectionKey;
-  options: readonly string[];
-  value: string;
-  onSelect: (key: SelectionKey, value: string) => void;
-  equalWidth?: boolean;
-  desktopColumns?: 4;
-  invalid?: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2 lg:gap-4">
-      {options.map((option) => {
-        const selected = value === option;
-
-        return (
-          <button
-            aria-pressed={selected}
-            className={`${equalWidth ? "min-w-0 flex-1" : ""} ${desktopColumns === 4 ? "lg:basis-[calc((100%_-_48px)/4)] lg:flex-none" : "lg:flex-1"} whitespace-nowrap rounded-[30px] border px-5 py-3 text-sm transition-colors lg:text-base ${
-              selected
-                ? "border-[#6e6e6e] bg-[#6e6e6e] text-white"
-                : invalid
-                  ? "border-[#efb1b1] bg-white text-[#a8a8a8] hover:bg-[#e7e7e9]"
-                  : "border-transparent bg-white text-[#a8a8a8] hover:bg-[#e7e7e9]"
-            }`}
-            key={option}
-            onClick={() => onSelect(selectionKey, option)}
-            type="button"
-          >
-            {option}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="px-2.5 text-base font-bold text-[#28292e]">{children}</h2>;
-}
-
-function Subsection({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <h3 className="px-2.5 text-sm font-medium text-[#28292e]">{label}</h3>
-      {children}
-    </div>
-  );
-}
 
 export function PlanForm({ editMode }: PlanFormProps) {
   const router = useRouter();
   const [values, setValues] = useState<PlanFormValues>(
-    editMode ? existingPlanValues : emptyValues,
+    editMode ? existingPlanValues : emptyPlanValues,
   );
-  const [requiredErrors, setRequiredErrors] = useState<
-    ("name" | "waitingPeriod")[]
-  >([]);
+  const [requiredErrors, setRequiredErrors] = useState<RequiredPlanField[]>([]);
 
-  const selectValue = (key: SelectionKey, value: string) => {
+  const selectValue = (key: PlanSelectionKey, value: string) => {
     setValues((current) => ({
       ...current,
       [key]: current[key] === value ? "" : value,
@@ -133,7 +45,7 @@ export function PlanForm({ editMode }: PlanFormProps) {
   };
 
   const validateRequiredFields = () => {
-    const nextErrors: ("name" | "waitingPeriod")[] = [];
+    const nextErrors: RequiredPlanField[] = [];
 
     if (!values.name.trim()) nextErrors.push("name");
     if (!values.waitingPeriod) nextErrors.push("waitingPeriod");
@@ -191,10 +103,10 @@ export function PlanForm({ editMode }: PlanFormProps) {
           <section className="flex flex-col gap-[18px] lg:gap-[10px]">
             <SectionTitle>관계 정리</SectionTitle>
             <Subsection label="SNS 계정 처리">
-              <ChoiceGroup selectionKey="socialAccount" options={["삭제", "추모 전환", "비공개", "기타", "해당 없음"]} value={values.socialAccount} onSelect={selectValue} desktopColumns={4} />
+              <ChoiceGroup selectionKey="socialAccount" options={planOptions.socialAccount} value={values.socialAccount} onSelect={selectValue} desktopColumns={4} />
             </Subsection>
             <Subsection label="메신저·연락처로 부고 전달">
-              <ChoiceGroup selectionKey="obituary" options={["전달", "전달 안함", "친한 지인"]} value={values.obituary} onSelect={selectValue} />
+              <ChoiceGroup selectionKey="obituary" options={planOptions.obituary} value={values.obituary} onSelect={selectValue} />
             </Subsection>
           </section>
         </div>
@@ -205,10 +117,10 @@ export function PlanForm({ editMode }: PlanFormProps) {
           <section className="flex flex-col gap-[15px] lg:gap-[10px]">
             <SectionTitle>업무 정리</SectionTitle>
             <Subsection label="업무 계정･이메일">
-              <ChoiceGroup selectionKey="workAccount" options={["인수인계", "삭제"]} value={values.workAccount} onSelect={selectValue} />
+              <ChoiceGroup selectionKey="workAccount" options={planOptions.workAccount} value={values.workAccount} onSelect={selectValue} />
             </Subsection>
             <Subsection label="진행 중인 일·거래처 인계">
-              <ChoiceGroup selectionKey="workHandover" options={["인수인계", "인계 안함"]} value={values.workHandover} onSelect={selectValue} />
+              <ChoiceGroup selectionKey="workHandover" options={planOptions.workHandover} value={values.workHandover} onSelect={selectValue} />
             </Subsection>
           </section>
 
@@ -216,7 +128,7 @@ export function PlanForm({ editMode }: PlanFormProps) {
 
           <section className="flex flex-col gap-3.5">
             <SectionTitle>대기 기간</SectionTitle>
-            <ChoiceGroup selectionKey="waitingPeriod" options={["7일", "14일", "22일"]} value={values.waitingPeriod} onSelect={selectValue} equalWidth invalid={waitingPeriodHasError} />
+            <ChoiceGroup selectionKey="waitingPeriod" options={planOptions.waitingPeriod} value={values.waitingPeriod} onSelect={selectValue} equalWidth invalid={waitingPeriodHasError} />
             {waitingPeriodHasError && (
               <p className="px-2.5 text-xs font-medium text-[#d66565]" role="alert">
                 대기 기간을 선택해주세요.
@@ -235,7 +147,7 @@ export function PlanForm({ editMode }: PlanFormProps) {
                 <p>믿을 수 있는 가족·지인을 등록해 주세요</p>
               </div>
             </div>
-            <ChoiceGroup selectionKey="objectionContact" options={["등록", "등록 안함"]} value={values.objectionContact} onSelect={selectValue} />
+            <ChoiceGroup selectionKey="objectionContact" options={planOptions.objectionContact} value={values.objectionContact} onSelect={selectValue} />
           </section>
 
           <div className="flex flex-col items-center gap-[18px] lg:gap-5">

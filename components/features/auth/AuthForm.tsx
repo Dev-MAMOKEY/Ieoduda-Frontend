@@ -7,25 +7,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { DesktopHeader } from "@/components/shared/layout/DesktopHeader";
 import { primaryActionClassName } from "@/components/shared/ui/actionStyles";
-
-export type AuthField = {
-  id: string;
-  label: string;
-  type: "email" | "password";
-  autoComplete: string;
-  placeholder: string;
-};
-
-export type AuthFormProps = {
-  variant: "login" | "signup";
-  title: string;
-  fields: readonly AuthField[];
-  submitLabel: string;
-  prompt: string;
-  linkLabel: string;
-  linkHref: string;
-  submitHref?: string;
-};
+import type { AuthFormProps } from "./model/authTypes";
 
 export function AuthForm({
   variant,

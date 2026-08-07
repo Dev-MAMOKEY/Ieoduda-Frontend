@@ -2,22 +2,12 @@
 import Image from "next/image";
 import { PlanActions } from "@/components/features/planning/PlanActions";
 import { PlanCard } from "@/components/features/planning/PlanCard";
+import {
+  primaryPlanCards,
+  secondaryPlanCards,
+} from "@/components/features/planning/data/planHomeCards";
 import { DesktopHeader } from "@/components/shared/layout/DesktopHeader";
 import { BackButton } from "@/components/shared/ui/BackButton";
-
-const primaryCards = [
-  { title: "전달 메세지", description: "가족･친구･지인에게", status: "작성완료", icon: "/icons/plan/cards/message.svg" },
-  { title: "관계 정리", description: "SNS 계정 /부고 전달", status: "작성완료", icon: "/icons/plan/cards/envelope.svg" },
-  { title: "업무 정리", description: "계정･이메일/인수인계", status: "작성완료", icon: "/icons/plan/cards/buildings.svg" },
-  { title: "대기 기간", description: "14일", status: "작성완료", icon: "/icons/plan/cards/clock.svg" },
-];
-
-const secondaryCards = [
-  { title: "확인자", description: "이지수･김민수", icon: "/icons/plan/cards/users.svg" },
-  { title: "대체 담당자", description: "누락", icon: "/icons/plan/cards/warning-circle.svg" },
-  { title: "담당자 수락 상태", description: "이메일 수락 완료", icon: "/icons/plan/cards/user-check.svg" },
-  { title: "미해결 충돌", description: "1건", icon: "/icons/plan/cards/warning.svg" },
-];
 
 export default function PlanPage() {
 
@@ -54,14 +44,14 @@ export default function PlanPage() {
 
           <div className="grid w-full gap-[22px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-[26px]">
             <section className="flex flex-col gap-[22px]">
-              {primaryCards.map((card) => (
+              {primaryPlanCards.map((card) => (
                 <PlanCard key={card.title} {...card} />
               ))}
             </section>
 
             <section className="flex flex-col gap-[18px]">
               <div className="grid grid-cols-2 gap-[18px] lg:gap-[22px_18px]">
-                {secondaryCards.map((card) => (
+                {secondaryPlanCards.map((card) => (
                   <PlanCard key={card.title} {...card} compact />
                 ))}
               </div>

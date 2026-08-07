@@ -1,5 +1,4 @@
-// 로그인과 회원가입 페이지의 중복 입력 정의와 화면 이동 설정을 한곳에서 관리합니다.
-import type { AuthFormProps } from "./AuthForm";
+import type { AuthFormProps } from "../model/authTypes";
 
 const emailField = {
   id: "email",

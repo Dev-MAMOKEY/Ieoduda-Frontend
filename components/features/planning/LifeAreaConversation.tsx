@@ -4,108 +4,14 @@
 import Image from "next/image";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { BackButton } from "@/components/shared/ui/BackButton";
+import { StructuredPlanCard } from "./components/StructuredPlanCard";
+import { mockStructuredPlans } from "./data/mockStructuredPlans";
 
 const assistantBubbleClassName =
   "self-start rounded-bl-[30px] rounded-br-[30px] rounded-tr-[30px] bg-[#d5d5d5] px-[22px] py-[18px] text-sm font-semibold text-[#28292e] lg:px-[30px] lg:py-5 lg:text-base";
 
 const userBubbleClassName =
   "self-end rounded-bl-[30px] rounded-br-[30px] rounded-tl-[30px] bg-white px-[22px] py-[18px] text-sm text-[#28292e] lg:px-[30px] lg:py-5 lg:text-base";
-
-type StructuredPlan = {
-  id: number;
-  source: string;
-  name: string;
-  waitingPeriod: string;
-  message?: string;
-  socialAccount?: string;
-  obituary?: string;
-  workAccount?: string;
-  workHandover?: string;
-  objectionContact?: string;
-};
-
-// 추후 백엔드 JSON 응답으로 교체할 계획 구조화 결과 목 데이터입니다.
-// 계획 이름과 대기 기간은 필수이며 나머지 PlanForm 항목은 선택값입니다.
-const mockStructuredPlans: StructuredPlan[] = [
-  {
-    id: 1,
-    source: "아내에게 가족사진 위치를 알려주고...",
-    name: "가족 사진 전달",
-    waitingPeriod: "14일",
-    message: "가족 사진은 클라우드 보관함 2번째 파일에 있어.",
-  },
-  {
-    id: 2,
-    source: "민수에게 디자인 프로젝트를 인계한 뒤...",
-    name: "디자인 프로젝트 인계",
-    waitingPeriod: "14일",
-    workAccount: "인수인계",
-    workHandover: "김민수에게 디자인 프로젝트 인수인계",
-  },
-  {
-    id: 3,
-    source: "지수에게 SNS와 클라우드 정리를 부탁하고 싶...",
-    name: "SNS 및 클라우드 정리",
-    waitingPeriod: "7일",
-    socialAccount: "비공개",
-    objectionContact: "이지수",
-  },
-];
-
-const optionalFieldLabels: Partial<Record<keyof StructuredPlan, string>> = {
-  message: "전달하는 메시지",
-  socialAccount: "SNS 계정 처리",
-  obituary: "부고 전달",
-  workAccount: "업무 계정･이메일",
-  workHandover: "업무 정리",
-  objectionContact: "이의제기 연락처",
-};
-
-function StructuredPlanCard({ plan }: { plan: StructuredPlan }) {
-  const optionalFields = Object.entries(optionalFieldLabels).flatMap(
-    ([key, label]) => {
-      const value = plan[key as keyof StructuredPlan];
-      return typeof value === "string" && value ? [{ key, label, value }] : [];
-    },
-  );
-
-  return (
-    <article className="flex w-[318px] max-w-full flex-col gap-[19px] rounded-bl-[30px] rounded-br-[30px] rounded-tr-[30px] bg-[#d5d5d5] px-[22px] py-5 text-sm lg:w-auto lg:min-w-0 lg:gap-[26px] lg:px-[30px] lg:text-base">
-      <div className="flex flex-col gap-2">
-        <span className="flex size-6 items-center justify-center rounded-full border-[1.5px] border-[#28292e] text-xs font-semibold lg:size-[26px] lg:text-sm">
-          {plan.id}
-        </span>
-        <span className="font-medium text-[#838383]">원문 근거</span>
-        <p className="truncate text-[#28292e]">{plan.source}</p>
-      </div>
-
-      <div className="flex flex-col gap-2.5">
-        <strong className="text-[#28292e]">계획 이름</strong>
-        <span className="font-medium text-[#838383]">{plan.name}</span>
-      </div>
-
-      {optionalFields.map((field) => (
-        <div className="flex flex-col gap-2.5" key={field.key}>
-          <strong className="text-[#28292e]">{field.label}</strong>
-          <span className="font-medium text-[#838383]">{field.value}</span>
-        </div>
-      ))}
-
-      <div className="flex flex-col gap-2.5">
-        <strong className="text-[#28292e]">대기 기간</strong>
-        <span className="font-medium text-[#838383]">{plan.waitingPeriod}</span>
-      </div>
-
-      <div className="mt-auto flex gap-3.5">
-        {["승인", "수정", "삭제"].map((action) => (
-          <button className="flex h-[45px] min-w-0 flex-1 items-center justify-center rounded-[20px] bg-[#a8a8a8] px-3 text-sm text-white transition-colors hover:bg-[#929292] lg:h-[52px] lg:rounded-[30px] lg:text-base" key={action} type="button">
-            {action}
-          </button>
-        ))}
-      </div>
-    </article>
-  );
-}
 
 export function LifeAreaConversation() {
   const [socialAction, setSocialAction] = useState("비공개");

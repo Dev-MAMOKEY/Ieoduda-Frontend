@@ -46,7 +46,7 @@ export function HandoverAgreement() {
                 onChange={() => toggleAgreement(index)}
                 type="checkbox"
               />
-              <span className="flex size-[16px] shrink-0 items-center justify-center rounded-[6px] border-2 border-[#a8a8a8] text-[11px] text-white peer-checked:border-[#6e6e6e] peer-checked:bg-[#6e6e6e] peer-checked:after:content-['✓']" />
+              <span className="relative size-[16px] shrink-0 rounded-[6px] border-2 border-[#a8a8a8] text-[11px] font-bold text-white after:absolute after:left-1/2 after:top-1/2 after:leading-none after:content-['✓'] after:-translate-x-1/2 after:-translate-y-1/2 after:opacity-0 peer-checked:border-[#6e6e6e] peer-checked:bg-[#6e6e6e] peer-checked:after:opacity-100" />
               <span>{agreement}</span>
             </label>
           ))}
