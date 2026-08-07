@@ -3,6 +3,7 @@ import Image from "next/image";
 import { PlanActions } from "@/components/features/planning/PlanActions";
 import { PlanCard } from "@/components/features/planning/PlanCard";
 import { DesktopHeader } from "@/components/shared/layout/DesktopHeader";
+import { BackButton } from "@/components/shared/ui/BackButton";
 
 const primaryCards = [
   { title: "전달 메세지", description: "가족･친구･지인에게", status: "작성완료", icon: "/icons/plan/cards/message.svg" },
@@ -26,13 +27,7 @@ export default function PlanPage() {
 
       <div className="mx-auto flex w-full max-w-[390px] flex-col gap-[22px] px-6 py-[70px] lg:max-w-none lg:gap-10 lg:px-[60px] lg:pb-[70px] lg:pt-0">
         <header className="flex w-full items-start justify-between pb-2.5 lg:h-7 lg:items-center lg:px-0 lg:pb-0">
-          <Image
-            className="rotate-180 lg:size-7"
-            src="/icons/common/caret-right.svg"
-            alt="이전"
-            width={24}
-            height={24}
-          />
+          <BackButton />
           <h1 className="text-lg font-bold text-[#28292e] lg:text-xl">홈</h1>
           <span className="hidden size-7 lg:block" aria-hidden />
           <Image

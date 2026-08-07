@@ -1,10 +1,9 @@
 "use client";
 
 // 계획의 기본 정보와 처리 방식을 입력하고 선택하는 반응형 작성 폼입니다.
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BackButton } from "@/components/shared/ui/BackButton";
 
 type SelectionKey =
   | "socialAccount"
@@ -152,15 +151,7 @@ export function PlanForm({ editMode }: PlanFormProps) {
   return (
     <div className="mx-auto flex w-full max-w-[390px] flex-col gap-[22px] px-6 py-[70px] lg:max-w-none lg:px-0 lg:pb-[90px] lg:pt-0">
       <header className="flex w-full items-center justify-between pb-5 lg:px-[60px] lg:pb-0">
-        <Link aria-label="계획 홈으로 돌아가기" href="/plan">
-          <Image
-            className="rotate-180"
-            src="/icons/common/caret-right.svg"
-            alt=""
-            width={24}
-            height={24}
-          />
-        </Link>
+        <BackButton href="/plan" label="계획 홈으로 돌아가기" />
         <h1 className="text-lg font-bold text-[#28292e] lg:text-xl">계획 작성</h1>
         <span className="size-6" aria-hidden />
       </header>

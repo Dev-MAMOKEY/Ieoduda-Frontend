@@ -2,8 +2,8 @@
 
 // 계획의 세부 내용을 대화 형식으로 확인하고 추가 내용을 입력하는 반응형 화면입니다.
 import Image from "next/image";
-import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { BackButton } from "@/components/shared/ui/BackButton";
 
 const assistantBubbleClassName =
   "self-start rounded-bl-[30px] rounded-br-[30px] rounded-tr-[30px] bg-[#d5d5d5] px-[22px] py-[18px] text-sm font-semibold text-[#28292e] lg:px-[30px] lg:py-5 lg:text-base";
@@ -135,9 +135,7 @@ export function LifeAreaConversation() {
   return (
     <section className="mx-auto flex h-dvh w-full max-w-[390px] flex-col gap-[22px] overflow-hidden px-6 pb-[50px] pt-[70px] lg:h-[calc(100vh-125px)] lg:max-w-none lg:px-0 lg:pb-20 lg:pt-0">
       <header className="flex w-full shrink-0 items-start justify-between pb-5 lg:px-[60px] lg:pb-0">
-        <Link aria-label="계획 작성 화면으로 돌아가기" href="/plan/write">
-          <Image className="rotate-180 lg:size-7" src="/icons/common/caret-right.svg" alt="" width={24} height={24} />
-        </Link>
+        <BackButton href="/plan/write" label="계획 작성 화면으로 돌아가기" />
         <h1 className="text-lg font-bold text-[#28292e] lg:text-xl">대화 작성</h1>
         <span className="size-6 lg:size-7" aria-hidden />
       </header>
