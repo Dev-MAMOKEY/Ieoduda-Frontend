@@ -45,7 +45,7 @@ const existingPlanValues: PlanFormValues = {
 };
 
 const fieldClassName =
-  "h-[45px] w-full rounded-[20px] border-0 bg-white px-5 text-sm text-[#28292e] outline-none placeholder:text-[#a8a8a8] focus-visible:ring-2 focus-visible:ring-[#28292e]/20 lg:h-[52px] lg:rounded-[30px] lg:text-base";
+  "h-[45px] w-full rounded-[20px] border bg-white px-5 text-sm text-[#28292e] outline-none placeholder:text-[#a8a8a8] focus-visible:ring-2 lg:h-[52px] lg:rounded-[30px] lg:text-base";
 
 function ChoiceGroup({
   selectionKey,
@@ -54,6 +54,7 @@ function ChoiceGroup({
   onSelect,
   equalWidth = false,
   desktopColumns,
+  invalid = false,
 }: {
   selectionKey: SelectionKey;
   options: readonly string[];
@@ -61,6 +62,7 @@ function ChoiceGroup({
   onSelect: (key: SelectionKey, value: string) => void;
   equalWidth?: boolean;
   desktopColumns?: 4;
+  invalid?: boolean;
 }) {
   return (
     <div className="flex flex-wrap gap-2 lg:gap-4">
@@ -70,10 +72,12 @@ function ChoiceGroup({
         return (
           <button
             aria-pressed={selected}
-            className={`${equalWidth ? "min-w-0 flex-1" : ""} ${desktopColumns === 4 ? "lg:basis-[calc((100%_-_48px)/4)] lg:flex-none" : "lg:flex-1"} whitespace-nowrap rounded-[30px] px-5 py-3 text-sm transition-colors lg:text-base ${
+            className={`${equalWidth ? "min-w-0 flex-1" : ""} ${desktopColumns === 4 ? "lg:basis-[calc((100%_-_48px)/4)] lg:flex-none" : "lg:flex-1"} whitespace-nowrap rounded-[30px] border px-5 py-3 text-sm transition-colors lg:text-base ${
               selected
-                ? "bg-[#6e6e6e] text-white"
-                : "bg-white text-[#a8a8a8] hover:bg-[#e7e7e9]"
+                ? "border-[#6e6e6e] bg-[#6e6e6e] text-white"
+                : invalid
+                  ? "border-[#efb1b1] bg-white text-[#a8a8a8] hover:bg-[#e7e7e9]"
+                  : "border-transparent bg-white text-[#a8a8a8] hover:bg-[#e7e7e9]"
             }`}
             key={option}
             onClick={() => onSelect(selectionKey, option)}
@@ -110,13 +114,34 @@ export function PlanForm({ editMode }: PlanFormProps) {
   const [values, setValues] = useState<PlanFormValues>(
     editMode ? existingPlanValues : emptyValues,
   );
+  const [requiredErrors, setRequiredErrors] = useState<
+    ("name" | "waitingPeriod")[]
+  >([]);
 
   const selectValue = (key: SelectionKey, value: string) => {
     setValues((current) => ({
       ...current,
       [key]: current[key] === value ? "" : value,
     }));
+
+    if (key === "waitingPeriod") {
+      setRequiredErrors((current) =>
+        current.filter((field) => field !== "waitingPeriod"),
+      );
+    }
   };
+
+  const validateRequiredFields = () => {
+    const nextErrors: ("name" | "waitingPeriod")[] = [];
+
+    if (!values.name.trim()) nextErrors.push("name");
+    if (!values.waitingPeriod) nextErrors.push("waitingPeriod");
+
+    setRequiredErrors(nextErrors);
+  };
+
+  const nameHasError = requiredErrors.includes("name");
+  const waitingPeriodHasError = requiredErrors.includes("waitingPeriod");
 
   return (
     <div className="mx-auto flex w-full max-w-[390px] flex-col gap-[22px] px-6 py-[70px] lg:max-w-none lg:px-0 lg:pb-[90px] lg:pt-0">
@@ -138,14 +163,30 @@ export function PlanForm({ editMode }: PlanFormProps) {
         <div className="flex flex-col gap-[22px] lg:gap-[50px]">
           <section className="flex flex-col gap-2.5">
             <SectionTitle>계획 이름</SectionTitle>
-            <input className={fieldClassName} onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))} placeholder="계획 이름을 입력해 주세요" type="text" value={values.name} />
+            <input
+              aria-describedby={nameHasError ? "plan-name-error" : undefined}
+              aria-invalid={nameHasError}
+              className={`${fieldClassName} ${nameHasError ? "border-[#efb1b1] focus-visible:ring-[#e89191]/40" : "border-transparent focus-visible:ring-[#28292e]/20"}`}
+              onChange={(event) => {
+                setValues((current) => ({ ...current, name: event.target.value }));
+                setRequiredErrors((current) => current.filter((field) => field !== "name"));
+              }}
+              placeholder="계획 이름을 입력해 주세요"
+              type="text"
+              value={values.name}
+            />
+            {nameHasError && (
+              <p className="px-2.5 text-xs font-medium text-[#d66565]" id="plan-name-error" role="alert">
+                계획 이름을 작성해주세요.
+              </p>
+            )}
           </section>
 
           <hr className="border-0 border-t border-[#bdbdbd] lg:hidden" />
 
           <section className="flex flex-col gap-2.5">
             <SectionTitle>가족･친구･지인 담당자에게</SectionTitle>
-            <input className={fieldClassName} onChange={(event) => setValues((current) => ({ ...current, message: event.target.value }))} placeholder="전달할 내용을 입력해 주세요" type="text" value={values.message} />
+            <input className={`${fieldClassName} border-transparent focus-visible:ring-[#28292e]/20`} onChange={(event) => setValues((current) => ({ ...current, message: event.target.value }))} placeholder="전달할 내용을 입력해 주세요" type="text" value={values.message} />
           </section>
 
           <hr className="border-0 border-t border-[#bdbdbd] lg:hidden" />
@@ -178,7 +219,12 @@ export function PlanForm({ editMode }: PlanFormProps) {
 
           <section className="flex flex-col gap-3.5">
             <SectionTitle>대기 기간</SectionTitle>
-            <ChoiceGroup selectionKey="waitingPeriod" options={["7일", "14일", "22일"]} value={values.waitingPeriod} onSelect={selectValue} equalWidth />
+            <ChoiceGroup selectionKey="waitingPeriod" options={["7일", "14일", "22일"]} value={values.waitingPeriod} onSelect={selectValue} equalWidth invalid={waitingPeriodHasError} />
+            {waitingPeriodHasError && (
+              <p className="px-2.5 text-xs font-medium text-[#d66565]" role="alert">
+                대기 기간을 선택해주세요.
+              </p>
+            )}
           </section>
 
           <hr className="border-0 border-t border-[#bdbdbd] lg:hidden" />
@@ -196,7 +242,7 @@ export function PlanForm({ editMode }: PlanFormProps) {
           </section>
 
           <div className="flex flex-col items-center gap-[18px] lg:gap-5">
-            <button className="flex h-[45px] w-full items-center justify-center rounded-[20px] bg-[#a8a8a8] px-5 text-sm text-white transition-colors hover:bg-[#929292] lg:h-[52px] lg:rounded-[30px] lg:text-base" type="button">
+            <button className="flex h-[45px] w-full items-center justify-center rounded-[20px] bg-[#a8a8a8] px-5 text-sm text-white transition-colors hover:bg-[#929292] lg:h-[52px] lg:rounded-[30px] lg:text-base" onClick={validateRequiredFields} type="button">
               세부 사항 대화하기
             </button>
             <p className="text-center text-[13px] font-medium text-[#838383] lg:text-sm">
