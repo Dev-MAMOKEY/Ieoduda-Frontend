@@ -3,6 +3,7 @@
 // 계획의 기본 정보와 처리 방식을 입력하고 선택하는 반응형 작성 폼입니다.
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type SelectionKey =
@@ -111,6 +112,7 @@ function Subsection({
 }
 
 export function PlanForm({ editMode }: PlanFormProps) {
+  const router = useRouter();
   const [values, setValues] = useState<PlanFormValues>(
     editMode ? existingPlanValues : emptyValues,
   );
@@ -138,6 +140,10 @@ export function PlanForm({ editMode }: PlanFormProps) {
     if (!values.waitingPeriod) nextErrors.push("waitingPeriod");
 
     setRequiredErrors(nextErrors);
+
+    if (nextErrors.length === 0) {
+      router.push("/plan/life-area");
+    }
   };
 
   const nameHasError = requiredErrors.includes("name");
