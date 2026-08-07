@@ -7,8 +7,8 @@ type PlanActionsProps = {
 
 export function PlanActions({ desktop = false }: PlanActionsProps) {
   const buttonClassName = desktop
-    ? "h-[52px] w-full rounded-[30px] bg-[#a8a8a8] px-5 text-base text-white"
-    : "h-[45px] flex-1 rounded-[20px] bg-[#a8a8a8] px-5 text-sm text-white";
+    ? "h-[52px] w-full rounded-[30px] bg-[#a8a8a8] px-5 text-base text-white transition-colors hover:bg-[#929292]"
+    : "h-[45px] flex-1 rounded-[20px] bg-[#a8a8a8] px-5 text-sm text-white transition-colors hover:bg-[#929292]";
 
   return (
     <div
