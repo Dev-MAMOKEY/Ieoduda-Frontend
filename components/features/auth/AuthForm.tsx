@@ -5,7 +5,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { DesktopHeader } from "@/components/shared/layout/DesktopHeader";
 import { primaryActionClassName } from "@/components/shared/ui/actionStyles";
 import type { AuthFormProps } from "./model/authTypes";
 
@@ -47,9 +46,8 @@ export function AuthForm({
 
   return (
     <main className="flex min-h-dvh justify-center bg-[#f0f0f2] lg:min-h-screen lg:flex-col">
-      <DesktopHeader />
 
-      <section className="flex min-h-dvh w-full max-w-[390px] items-center bg-[#f0f0f2] px-6 py-[70px] lg:min-h-0 lg:max-w-none lg:flex-1 lg:justify-center lg:px-[120px] lg:pb-[200px] lg:pt-0">
+      <section className="flex min-h-dvh w-full max-w-[390px] items-center bg-[#f0f0f2] px-6 py-[70px] lg:min-h-0 lg:max-w-none lg:flex-1 lg:justify-center lg:px-[120px] lg:py-[70px]">
         <form
           className="flex w-full flex-col gap-5 lg:w-[460px]"
           noValidate
