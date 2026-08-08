@@ -2,6 +2,7 @@
 import { HandoverAgreement } from "@/components/features/onboarding/HandoverAgreement";
 import { OnboardingShell } from "@/components/features/onboarding/OnboardingShell";
 
+// 서비스 이용 동의를 받는 마지막 온보딩 단계를 렌더링합니다.
 export default function HandoverAgreementPage() {
   return (
     <OnboardingShell>

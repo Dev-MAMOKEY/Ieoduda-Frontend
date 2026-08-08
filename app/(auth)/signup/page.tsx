@@ -2,6 +2,7 @@
 import { AuthForm } from "@/components/features/auth/AuthForm";
 import { signupFormConfig } from "@/components/features/auth/data/authFormConfigs";
 
+// 회원가입 설정을 공통 인증 폼에 전달해 회원가입 화면을 구성합니다.
 export default function SignupPage() {
   return (
     <AuthForm {...signupFormConfig} />

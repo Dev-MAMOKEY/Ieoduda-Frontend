@@ -1,6 +1,7 @@
 import type { StructuredPlan } from "../model/planTypes";
 
 // 추후 백엔드 JSON 응답으로 교체할 계획 구조화 결과 목 데이터입니다.
+// AI 대화 결과 카드 UI를 표시하기 위한 임시 구조화 계획 데이터입니다.
 export const mockStructuredPlans: StructuredPlan[] = [
   {
     id: 1,

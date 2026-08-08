@@ -1,6 +1,7 @@
 // 계획 항목의 아이콘, 설명, 선택적 상태를 일반형 또는 축약형 카드로 표시합니다.
 import Image from "next/image";
 
+// 계획 요약 카드에 표시할 콘텐츠와 배치 방식을 정의합니다.
 type PlanCardProps = {
   title: string;
   description: string;
@@ -9,6 +10,7 @@ type PlanCardProps = {
   compact?: boolean;
 };
 
+// 계획 항목의 아이콘, 제목, 설명, 선택 상태를 요약해 표시합니다.
 export function PlanCard({
   title,
   description,

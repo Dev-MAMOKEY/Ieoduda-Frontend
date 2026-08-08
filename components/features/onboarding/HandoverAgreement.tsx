@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { conditionalActionClassName } from "@/components/shared/ui/actionStyles";
 
+// 서비스 시작 전에 사용자가 확인하고 동의해야 하는 항목입니다.
 const agreements = [
   "지정 확인자 2명의 신고가 필요합니다.",
   "외부 법무･장례 파트너가 공식 증빙을 검토합니다.",
@@ -13,13 +14,16 @@ const agreements = [
   "서비스가 실제 계정을 자동 삭제･이전하지 않습니다.",
 ];
 
+// 필수 항목의 동의 상태를 관리하고 완료 시 계획 화면으로 이동시킵니다.
 export function HandoverAgreement() {
   const router = useRouter();
   const [checked, setChecked] = useState<boolean[]>(
     agreements.map(() => false),
   );
+  // 모든 필수 동의가 완료되어 시작 버튼을 활성화할 수 있는지 계산합니다.
   const allChecked = checked.every(Boolean);
 
+  // 선택한 동의 항목만 현재 상태의 반대로 전환합니다.
   const toggleAgreement = (index: number) => {
     setChecked((current) =>
       current.map((value, itemIndex) =>

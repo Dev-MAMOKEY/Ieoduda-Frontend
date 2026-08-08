@@ -17,13 +17,16 @@ import type {
   RequiredPlanField,
 } from "./model/planTypes";
 
+// 신규 작성과 기존 계획 수정 중 어떤 초기 상태를 사용할지 정의합니다.
 type PlanFormProps = {
   editMode: boolean;
 };
 
+// 계획 폼의 텍스트 입력란이 공통으로 사용하는 스타일입니다.
 const fieldClassName =
   "h-[45px] w-full rounded-[20px] border bg-white px-5 text-sm text-[#28292e] outline-none placeholder:text-[#a8a8a8] focus-visible:ring-2 lg:h-[52px] lg:rounded-[30px] lg:text-base";
 
+// 계획 정보를 입력·선택하고 필수값 검증 후 다음 단계로 이동시키는 폼입니다.
 export function PlanForm({ editMode }: PlanFormProps) {
   const router = useRouter();
   const [values, setValues] = useState<PlanFormValues>(
@@ -31,6 +34,7 @@ export function PlanForm({ editMode }: PlanFormProps) {
   );
   const [requiredErrors, setRequiredErrors] = useState<RequiredPlanField[]>([]);
 
+  // 선택형 필드의 값을 선택하거나, 같은 값을 다시 눌렀을 때 선택을 해제합니다.
   const selectValue = (key: PlanSelectionKey, value: string) => {
     setValues((current) => ({
       ...current,
@@ -44,6 +48,7 @@ export function PlanForm({ editMode }: PlanFormProps) {
     }
   };
 
+  // 필수 필드를 검사하고 모두 입력되었으면 AI 대화 단계로 이동합니다.
   const validateRequiredFields = () => {
     const nextErrors: RequiredPlanField[] = [];
 
@@ -57,6 +62,7 @@ export function PlanForm({ editMode }: PlanFormProps) {
     }
   };
 
+  // 각 필수 입력 영역이 자신의 오류 표시 여부만 쉽게 참조하도록 계산합니다.
   const nameHasError = requiredErrors.includes("name");
   const waitingPeriodHasError = requiredErrors.includes("waitingPeriod");
 

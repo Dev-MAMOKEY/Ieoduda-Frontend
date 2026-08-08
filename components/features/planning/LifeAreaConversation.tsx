@@ -7,18 +7,22 @@ import { BackButton } from "@/components/shared/ui/BackButton";
 import { StructuredPlanCard } from "./components/StructuredPlanCard";
 import { mockStructuredPlans } from "./data/mockStructuredPlans";
 
+// AI가 보낸 메시지 말풍선에 공통으로 적용하는 스타일입니다.
 const assistantBubbleClassName =
   "self-start rounded-bl-[30px] rounded-br-[30px] rounded-tr-[30px] bg-[#d5d5d5] px-[22px] py-[18px] text-sm font-semibold text-[#28292e] lg:px-[30px] lg:py-5 lg:text-base";
 
+// 사용자가 보낸 메시지 말풍선에 공통으로 적용하는 스타일입니다.
 const userBubbleClassName =
   "self-end rounded-bl-[30px] rounded-br-[30px] rounded-tl-[30px] bg-white px-[22px] py-[18px] text-sm text-[#28292e] lg:px-[30px] lg:py-5 lg:text-base";
 
+// 계획 내용을 대화 형식으로 확인·보완하고 구조화된 결과를 보여줍니다.
 export function LifeAreaConversation() {
   const [socialAction, setSocialAction] = useState("비공개");
   const [message, setMessage] = useState("");
   const [additionalMessages, setAdditionalMessages] = useState<string[]>([]);
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
+  // 새 메시지가 추가될 때 대화의 마지막 항목이 보이도록 스크롤합니다.
   useEffect(() => {
     if (additionalMessages.length === 0) return;
 
@@ -28,6 +32,7 @@ export function LifeAreaConversation() {
     });
   }, [additionalMessages.length]);
 
+  // 공백 메시지를 제외한 사용자 입력을 대화 목록에 추가합니다.
   const sendMessage = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextMessage = message.trim();

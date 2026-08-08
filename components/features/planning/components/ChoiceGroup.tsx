@@ -1,5 +1,6 @@
 import type { PlanSelectionKey } from "../model/planTypes";
 
+// 선택 버튼 목록의 값, 변경 처리, 배치와 오류 상태를 정의합니다.
 type ChoiceGroupProps = {
   selectionKey: PlanSelectionKey;
   options: readonly string[];
@@ -10,6 +11,7 @@ type ChoiceGroupProps = {
   invalid?: boolean;
 };
 
+// 계획 폼의 선택지들을 단일 선택 가능한 버튼 그룹으로 렌더링합니다.
 export function ChoiceGroup({
   selectionKey,
   options,

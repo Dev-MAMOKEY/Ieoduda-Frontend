@@ -2,10 +2,12 @@
 import type { ReactNode } from "react";
 import { DesktopHeader } from "@/components/shared/layout/DesktopHeader";
 
+// 온보딩 공통 레이아웃 안에 표시할 단계별 콘텐츠입니다.
 type OnboardingShellProps = {
   children: ReactNode;
 };
 
+// 온보딩 화면에 공통 배경, 헤더, 콘텐츠 너비를 적용합니다.
 export function OnboardingShell({ children }: OnboardingShellProps) {
   return (
     <main className="flex min-h-dvh justify-center bg-[#f0f0f2] lg:flex-col">

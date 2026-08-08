@@ -9,6 +9,7 @@ import {
 import { DesktopHeader } from "@/components/shared/layout/DesktopHeader";
 import { BackButton } from "@/components/shared/ui/BackButton";
 
+// 저장된 계획 요약과 계획 작성·수정 진입점을 보여주는 계획 홈 화면입니다.
 export default function PlanPage() {
 
   return (

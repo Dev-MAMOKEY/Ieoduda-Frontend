@@ -2,12 +2,14 @@
 import Link from "next/link";
 import { primaryActionClassName } from "@/components/shared/ui/actionStyles";
 
+// 안내 카드의 제목, 본문, 다음 이동 경로를 정의합니다.
 type InfoCardProps = {
   title: string;
   lines: readonly string[];
   href: string;
 };
 
+// 여러 줄의 온보딩 설명과 다음 단계 버튼을 카드로 표시합니다.
 export function InfoCard({ title, lines, href }: InfoCardProps) {
   return (
     <article className="flex w-full max-w-[340px] flex-col items-center justify-center gap-6 overflow-hidden rounded-[30px] bg-white px-6 pb-[30px] pt-10 lg:max-w-[460px] lg:gap-10 lg:px-10">

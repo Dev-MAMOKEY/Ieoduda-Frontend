@@ -2,12 +2,14 @@
 import { InfoCard } from "./InfoCard";
 import { OnboardingShell } from "./OnboardingShell";
 
+// 공통 정보 페이지에 표시할 문구와 다음 경로를 정의합니다.
 type OnboardingInfoPageProps = {
   title: string;
   lines: readonly string[];
   href: string;
 };
 
+// 공통 셸과 안내 카드를 조합해 설명형 온보딩 화면을 만듭니다.
 export function OnboardingInfoPage({
   title,
   lines,

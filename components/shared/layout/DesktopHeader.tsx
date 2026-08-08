@@ -1,16 +1,19 @@
 // 데스크톱 화면에서 공통으로 사용하는 브랜드, 내비게이션, 사용자 상태 헤더입니다.
 import Image from "next/image";
 
+// 데스크톱 헤더에 표시할 주요 화면의 탐색 항목입니다.
 const navigationItems = [
   { src: "/icons/layout/header/home-outline.svg", label: "홈", size: 28 },
   { src: "/icons/layout/header/inspection.svg", label: "점검", size: 24 },
   { src: "/icons/layout/header/profile.svg", label: "설정", size: 24 },
 ];
 
+// 로그인 여부에 따라 헤더의 사용자 동작을 바꾸기 위한 속성입니다.
 type DesktopHeaderProps = {
   authenticated?: boolean;
 };
 
+// 큰 화면에서 로고, 주요 메뉴, 인증 관련 동작을 제공하는 공통 헤더입니다.
 export function DesktopHeader({ authenticated = false }: DesktopHeaderProps) {
   return (
     <header className="hidden h-[125px] w-full items-center justify-between px-[50px] pb-5 pt-6 lg:flex">

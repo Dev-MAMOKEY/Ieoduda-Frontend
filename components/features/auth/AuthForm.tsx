@@ -9,6 +9,7 @@ import { DesktopHeader } from "@/components/shared/layout/DesktopHeader";
 import { primaryActionClassName } from "@/components/shared/ui/actionStyles";
 import type { AuthFormProps } from "./model/authTypes";
 
+// 전달받은 설정에 따라 로그인 또는 회원가입 입력 화면을 렌더링합니다.
 export function AuthForm({
   variant,
   title,
@@ -23,6 +24,7 @@ export function AuthForm({
   const [emptyFieldIds, setEmptyFieldIds] = useState<string[]>([]);
   const isSignup = variant === "signup";
 
+  // 제출 시 빈 필드를 검증하고, 문제가 없으면 설정된 다음 화면으로 이동합니다.
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -38,6 +40,7 @@ export function AuthForm({
     }
   };
 
+  // 사용자가 값을 다시 입력한 필드의 오류 상태를 즉시 제거합니다.
   const clearFieldError = (fieldId: string) => {
     setEmptyFieldIds((current) => current.filter((id) => id !== fieldId));
   };

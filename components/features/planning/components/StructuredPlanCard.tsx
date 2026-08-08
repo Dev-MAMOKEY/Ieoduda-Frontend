@@ -1,5 +1,6 @@
 import type { StructuredPlan } from "../model/planTypes";
 
+// 구조화된 계획의 선택 입력 필드를 화면용 한글 제목에 연결합니다.
 const optionalFieldLabels: Partial<Record<keyof StructuredPlan, string>> = {
   message: "전달하는 메시지",
   socialAccount: "SNS 계정 처리",
@@ -9,7 +10,9 @@ const optionalFieldLabels: Partial<Record<keyof StructuredPlan, string>> = {
   objectionContact: "이의제기 연락처",
 };
 
+// AI 대화에서 정리된 계획 한 건의 필수·선택 정보를 카드로 표시합니다.
 export function StructuredPlanCard({ plan }: { plan: StructuredPlan }) {
+  // 값이 실제로 입력된 선택 필드만 카드에 표시할 목록으로 변환합니다.
   const optionalFields = Object.entries(optionalFieldLabels).flatMap(
     ([key, label]) => {
       const value = plan[key as keyof StructuredPlan];
