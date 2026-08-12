@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 
 export default function RestrictedInfoPage() {
   return (
@@ -6,10 +7,7 @@ export default function RestrictedInfoPage() {
       className="mx-auto flex min-h-dvh w-full max-w-[390px] items-center justify-center bg-[#f0f0f2] px-6 py-[70px] text-[#28292e]"
       data-node-id="439:1165"
     >
-      <section
-        className="flex w-full max-w-[340px] flex-col items-center justify-center gap-6 overflow-hidden rounded-[30px] bg-white px-6 pb-[30px] pt-10"
-        data-node-id="439:1166"
-      >
+      <Card data-node-id="439:1166">
         <div className="flex flex-col items-center gap-3 whitespace-nowrap text-center">
           <h1 className="text-base font-bold">금지정보 안내</h1>
           <div className="flex flex-col gap-1.5 text-sm font-medium text-[#838383]">
@@ -19,13 +17,10 @@ export default function RestrictedInfoPage() {
           </div>
         </div>
 
-        <Link
-          className="flex h-[45px] w-full items-center justify-center rounded-[20px] bg-[#a8a8a8] px-5 text-sm text-white transition-colors hover:bg-[#929292] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#838383]"
-          href="/agreement"
-        >
+        <Button href="/agreement">
           확인
-        </Link>
-      </section>
+        </Button>
+      </Card>
     </main>
   );
 }

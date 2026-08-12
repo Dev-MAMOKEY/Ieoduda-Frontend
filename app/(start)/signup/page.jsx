@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/Button";
 
 const fields = [
   {
@@ -56,12 +57,9 @@ export default function SignupPage() {
           </div>
         ))}
 
-        <button
-          className="flex h-[45px] w-full items-center justify-center rounded-[20px] bg-[#a8a8a8] px-5 text-sm text-white transition-colors hover:bg-[#929292] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#838383]"
-          type="submit"
-        >
+        <Button type="submit">
           회원가입하기
-        </button>
+        </Button>
 
         <p className="flex w-full items-center justify-center gap-2 text-sm whitespace-nowrap">
           <span className="text-[#a8a8a8]">이미 계정이 있으신가요?</span>

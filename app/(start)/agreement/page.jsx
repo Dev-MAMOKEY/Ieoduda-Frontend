@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 
 const agreements = [
   "지정 확인자 2명의 신고가 필요합니다.",
@@ -30,10 +32,7 @@ export default function AgreementPage() {
       className="mx-auto flex min-h-dvh w-full max-w-[390px] items-center justify-center bg-[#f0f0f2] px-6 py-[70px] text-[#28292e]"
       data-node-id="439:1176"
     >
-      <section
-        className="flex w-full max-w-[340px] flex-col items-center gap-[26px] overflow-hidden rounded-[30px] bg-white px-[30px] pb-[30px] pt-10"
-        data-node-id="439:1177"
-      >
+      <Card data-node-id="439:1177" variant="agreement">
         <div className="flex w-full flex-col items-center gap-[22px]">
           <h1 className="text-base font-bold">사후 인계 안내 필수 동의</h1>
 
@@ -56,14 +55,10 @@ export default function AgreementPage() {
           </div>
         </div>
 
-        <button
-          className="flex h-[45px] w-full items-center justify-center rounded-[20px] bg-[#a8a8a8] px-5 text-sm text-white transition-colors enabled:hover:bg-[#838383] disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={!allChecked}
-          type="button"
-        >
+        <Button disabled={!allChecked} type="button">
           시작하기
-        </button>
-      </section>
+        </Button>
+      </Card>
     </main>
   );
 }
