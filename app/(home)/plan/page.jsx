@@ -72,7 +72,7 @@ export default function PlanPage() {
       </div>
 
       <Link
-        className="flex min-h-[60px] w-full items-center justify-between rounded-[20px] bg-[#d9d9d9] px-5 py-[18px] text-left"
+        className="flex min-h-[60px] w-full items-center justify-between rounded-[20px] bg-[#d9d9d9] px-5 py-[18px] text-left transition-colors hover:bg-[#c9c9cb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#838383]"
         href="/order"
       >
         <span className="flex items-center gap-1.5 text-base font-bold">
