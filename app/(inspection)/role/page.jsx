@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/Button";
 import { OutlineButton } from "@/components/OutlineButton";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
+import { BottomTabBar } from "@/components/BottomTabBar";
 
 const people = [
   {
@@ -68,7 +70,6 @@ const people = [
     participantType: "지정확인자",
     role: "확인자",
     summary: "사용자 사망 확인 / 날짜 전달",
-    waitingPeriod: "14일",
   },
   {
     id: "sungho",
@@ -78,7 +79,6 @@ const people = [
     participantType: "지정확인자",
     role: "확인자",
     summary: "사용자 사망 확인 / 날짜 전달",
-    waitingPeriod: "7일",
   },
 ];
 
@@ -247,9 +247,12 @@ function PersonButton({ person, selected, onSelect }) {
   );
 }
 
-export default function RoleInspectionPage() {
+function RoleInspectionContent() {
+  const searchParams = useSearchParams();
+  const requestedId = searchParams.get("person");
+  const initialSelectedId = people.some((person) => person.id === requestedId) ? requestedId : "jisu";
   const [activeTab, setActiveTab] = useState("role");
-  const [selectedId, setSelectedId] = useState("jisu");
+  const [selectedId, setSelectedId] = useState(initialSelectedId);
   const selectedPerson = people.find((person) => person.id === selectedId) ?? people[0];
   const isVerifier = selectedPerson.participantType === "지정확인자";
 
@@ -303,10 +306,12 @@ export default function RoleInspectionPage() {
             <p className="text-sm font-medium text-[#838383]">{selectedPerson.summary}</p>
           </section>
 
-          <section className="flex flex-col gap-2.5">
-            <h3 className="text-base font-bold">대기 기간</h3>
-            <p className="text-sm font-medium text-[#838383]">{selectedPerson.waitingPeriod}</p>
-          </section>
+          {!isVerifier && (
+            <section className="flex flex-col gap-2.5">
+              <h3 className="text-base font-bold">대기 기간</h3>
+              <p className="text-sm font-medium text-[#838383]">{selectedPerson.waitingPeriod}</p>
+            </section>
+          )}
 
           {isVerifier ? (
             <section className="flex w-full flex-col gap-1.5 rounded-[20px] bg-[#f0f0f2] px-5 py-[18px]">
@@ -333,6 +338,15 @@ export default function RoleInspectionPage() {
         </OutlineButton>
       </div>
       </> : <HandoffInspection />}
+      <BottomTabBar activeTab="inspection" />
     </PageContainer>
+  );
+}
+
+export default function RoleInspectionPage() {
+  return (
+    <Suspense fallback={null}>
+      <RoleInspectionContent />
+    </Suspense>
   );
 }

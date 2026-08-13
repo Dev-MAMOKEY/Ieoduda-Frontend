@@ -97,7 +97,10 @@ export default function ManagerPage() {
   });
 
   const setPeriod = (roleId, days) => {
-    setPeriods((current) => ({ ...current, [roleId]: days }));
+    setPeriods((current) => ({
+      ...current,
+      [roleId]: current[roleId] === days ? null : days,
+    }));
   };
 
   const toggleBackup = (roleId) => {

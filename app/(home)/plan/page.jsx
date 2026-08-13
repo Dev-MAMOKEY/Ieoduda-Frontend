@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/Button";
+import { ForwardCaret } from "@/components/ForwardCaret";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
+import { BottomTabBar } from "@/components/BottomTabBar";
 
 const planItems = [
   {
@@ -81,19 +83,14 @@ export default function PlanPage() {
         </span>
         <span className="flex items-center gap-1.5 text-sm font-medium text-[#838383]">
           1건
-          <Image
-            className="rotate-180 scale-y-[-1]"
-            src="/icons/plan/navigation/conflict-caret.svg"
-            alt=""
-            width={18}
-            height={18}
-          />
+          <ForwardCaret />
         </span>
       </Link>
 
       {planItems.map((item) => (
         <PlanCard key={item.title} {...item} />
       ))}
+      <BottomTabBar activeTab="home" />
     </PageContainer>
   );
 }
