@@ -40,7 +40,7 @@ export default function AgreementPage() {
           ))}
         </ul>
 
-        <Button type="button">동의 후 시작하기</Button>
+        <Button href="/plan-info">동의 후 시작하기</Button>
       </Card>
     </main>
   );

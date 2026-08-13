@@ -68,10 +68,10 @@ export default function ProfileSettingsPage() {
       <UserProfileSummary />
 
       <SettingsSection title="계정 관리">
-        <button className="flex h-[57px] w-full items-center justify-between rounded-[20px] border-0 bg-white p-5 text-left" type="button">
+        <Link className="flex h-[57px] w-full items-center justify-between rounded-[20px] border-0 bg-white p-5 text-left" href="/login">
           <strong className="text-sm leading-normal">로그아웃</strong>
           <Image alt="" className="size-[18px]" height={18} src="/icons/settings/sign-out.svg" width={18} />
-        </button>
+        </Link>
       </SettingsSection>
 
       <SettingsSection title="계획 관리">
