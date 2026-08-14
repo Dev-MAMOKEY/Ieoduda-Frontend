@@ -42,7 +42,7 @@ export function DesktopHeader({
           >
             {tabs.map((tab) => {
               const active = tab.id === activeTab;
-              const iconSize = tab.id === "home" ? 26 : 24;
+              const iconSize = tab.id === "home" ? 28 : 24;
               return (
                 <Link
                   key={tab.id}
@@ -53,7 +53,7 @@ export function DesktopHeader({
                 >
                   <Image
                     alt=""
-                    className={tab.id === "home" ? "size-[26px]" : "size-6"}
+                    className={tab.id === "home" ? "size-7" : "size-6"}
                     width={iconSize}
                     height={iconSize}
                     src={tab.icon}

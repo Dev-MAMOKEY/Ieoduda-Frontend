@@ -5,7 +5,7 @@ import { DesktopHeader } from "@/components/DesktopHeader";
 
 export function InspectionDesktopHeader() {
   const pathname = usePathname();
-  const isRoleOverview = pathname === "/role";
+  const isRoleOverview = pathname === "/role" || pathname === "/handoff";
 
   return (
     <DesktopHeader

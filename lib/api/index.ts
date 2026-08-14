@@ -6,6 +6,8 @@ import {
   externalReview,
   lifeAreaResults,
   planOverview,
+  roleInspectionPeople,
+  handoffInspectionPeople,
 } from "./mock-data";
 
 // 실제 API 연결 시 각 함수의 반환부만 fetch 호출로 교체합니다.
@@ -29,4 +31,10 @@ export function getEvidenceAuditRecords() {
 }
 export function getExternalReview() {
   return externalReview;
+}
+export function getRoleInspectionPeople() {
+  return roleInspectionPeople;
+}
+export function getHandoffInspectionPeople() {
+  return handoffInspectionPeople;
 }

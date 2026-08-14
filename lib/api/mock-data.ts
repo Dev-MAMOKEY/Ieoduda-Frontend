@@ -153,3 +153,42 @@ export const externalReview = {
   document: { name: "사망 진단서.pdf", receivedAt: "26.11.14 11:50" },
   subject: { name: "김나무", birthDate: "92.10.04", matchStatus: "일치" },
 };
+
+export const roleInspectionPeople = [
+  {
+    id: "jisu",
+    name: "이지수",
+    email: "jisooo@naver.com",
+    status: "수락 대기",
+    type: "manager",
+    role: "관계 정리",
+    summary: "SNS 계정 / 부고 전달",
+    waitingPeriod: "7일",
+    groups: [
+      { title: "SNS 계정", tasks: [["인스타그램", "비공개 처리"], ["트위터", "계정 삭제"]] },
+      { title: "부고 전달", tasks: [["문자 메시지", "연락처에 저장된 모든 전화번호"], ["카카오톡", "단체 톡방"]] },
+    ],
+  },
+  {
+    id: "minsu",
+    name: "김민수",
+    email: "minsu.kim@gmail.com",
+    status: "수락 완료",
+    type: "manager",
+    role: "업무 정리",
+    summary: "디자인 프로젝트 인수인계",
+    waitingPeriod: "7일",
+    groups: [
+      { title: "작업 파일", tasks: [["피그마", "디자인 파일 소유권 이전"], ["구글 드라이브", "프로젝트 폴더 공유"]] },
+    ],
+  },
+  { id: "jimin", name: "유지민", email: "jimin_u@gmail.com", status: "수락 대기", type: "verifier", role: "확인자", summary: "사용자 사망 확인 / 날짜 전달" },
+  { id: "sungho", name: "박성호", email: "sungho.park@gmail.com", status: "수락 완료", type: "verifier", role: "확인자", summary: "사용자 사망 확인 / 날짜 전달" },
+];
+
+export const handoffInspectionPeople = [
+  { name: "이지수", type: "담당자", ready: "준비 완료", role: "관계 정리", complete: true, checks: [["이메일", "도달 완료", true], ["수락", "수락 완료", true], ["대체 담당자", "없음", true]], question: "없음" },
+  { name: "김민수", type: "담당자", ready: "준비 대기", role: "업무 정리", complete: false, checks: [["이메일", "도달 완료", true], ["수락", "수락 대기", false], ["대체 담당자", "없음", false]], question: "말씀하신 디자인 프로젝트 저 혼자 인계받는 건가요?\n팀에 같이 넘겨야 할 사람이 있으면 미리 알아두고 싶어요." },
+  { name: "유지민", type: "확인자", ready: "준비 대기", role: "관계 정리", complete: true, checks: [["이메일", "도달 완료", true], ["역할", "수락 완료", true]], question: "없음" },
+  { name: "박성호", type: "확인자", ready: "준비 완료", role: "관계 정리", complete: true, checks: [["이메일", "도달 완료", true], ["역할", "수락 완료", true]], question: "없음" },
+];

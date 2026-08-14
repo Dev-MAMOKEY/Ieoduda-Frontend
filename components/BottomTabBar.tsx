@@ -46,10 +46,10 @@ export function BottomTabBar({ activeTab, className = "" }: { activeTab: string;
           >
             <Image
               alt=""
-              className={`${tab.id === "home" ? "size-[26px]" : "size-6"} shrink-0`}
-              height={tab.id === "home" ? 26 : 24}
+              className={`${tab.id === "home" ? "size-7" : "size-6"} shrink-0`}
+              height={tab.id === "home" ? 28 : 24}
               src={tab.icon}
-              width={tab.id === "home" ? 26 : 24}
+              width={tab.id === "home" ? 28 : 24}
             />
             {isActive && (
               <span className="text-[13px] font-semibold leading-none text-[#6e6e6e]">
