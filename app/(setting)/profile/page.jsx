@@ -6,86 +6,25 @@ import { PageHeader } from "@/components/PageHeader";
 import { UserProfileSummary } from "@/components/UserProfileSummary";
 import { BottomTabBar } from "@/components/BottomTabBar";
 
-const planSettings = [
-  { label: "계획 버전", value: "v2" },
-  { label: "담당자 수락", href: "/role?person=jisu" },
-  { label: "확인자 수락", href: "/role?person=jimin" },
-  { label: "대기 이의제기", href: "/appeal" },
-];
+const plans = [{ label: "계획 버전", value: "v2" }, { label: "담당자 수락", href: "/role?person=jisu" }, { label: "확인자 수락", href: "/role?person=jimin" }, { label: "대기 이의제기", href: "/appeal" }];
+const cleanup = [{ label: "계획 비활성화", description: "실행만 멈춰요. 데이터는 남고 언제든 다시 켤 수 있어요" }, { label: "계정 삭제", description: <>계정·모든 계획이 영구 삭제돼요<br />담당자·확인자에겐 역할 해제가 안내돼요. 되돌릴 수 없어요</> }];
 
-const cleanupSettings = [
-  {
-    label: "계획 비활성화",
-    description: "실행만 멈춰요. 데이터는 남고 언제든 다시 켤 수 있어요",
-  },
-  {
-    label: "계정 삭제",
-    description: (
-      <>
-        계정·모든 계획이 영구 삭제돼요
-        <br />
-        담당자·확인자에겐 역할 해제가 안내돼요. 되돌릴 수 없어요
-      </>
-    ),
-  },
-];
-
-function SettingsRow({ label, value, description, href }) {
-  const content = (
-    <>
-      <span className={`flex min-w-0 flex-1 flex-col items-start ${description ? "gap-[7px]" : ""}`}>
-        <strong className="text-sm leading-normal">{label}</strong>
-        {description && <span className="whitespace-nowrap text-xs font-medium leading-normal text-[#838383]">{description}</span>}
-      </span>
-      {value && <span className="mr-2.5 text-xs font-medium text-[#838383]">{value}</span>}
-      <ForwardCaret />
-    </>
-  );
-
-  const className = `flex w-full items-center justify-between rounded-[20px] border-0 bg-white px-5 text-left ${description ? "min-h-[77px] py-[22px]" : "h-[57px] py-5"}`;
-
-  if (href) {
-    return <Link className={className} href={href}>{content}</Link>;
-  }
-
-  return <button className={className} type="button">{content}</button>;
+function Row({ label, value, description, href }) {
+  const inside = <><span className={`flex min-w-0 flex-1 flex-col ${description ? "gap-2" : ""}`}><strong className="text-sm lg:text-base">{label}</strong>{description && <span className="text-xs font-medium leading-relaxed text-[#838383] lg:text-sm">{description}</span>}</span>{value && <span className="mr-2.5 text-xs font-medium text-[#838383] lg:text-sm">{value}</span>}<ForwardCaret /></>;
+  const cls = `flex w-full items-center justify-between rounded-[20px] bg-white px-5 text-left ${description ? "min-h-[77px] py-[22px]" : "h-[57px]"}`;
+  return href ? <Link className={cls} href={href}>{inside}</Link> : <button className={`${cls} border-0`} type="button">{inside}</button>;
 }
-
-function SettingsSection({ title, children }) {
-  return (
-    <section className="flex w-full flex-col gap-3.5">
-      <h2 className="text-sm font-bold leading-normal">{title}</h2>
-      {children}
-    </section>
-  );
-}
+function Section({ title, children, className = "" }) { return <section className={`flex flex-col gap-3.5 lg:gap-[22px] ${className}`}><h2 className="text-sm font-bold">{title}</h2>{children}</section>; }
 
 export default function ProfileSettingsPage() {
-  return (
-    <PageContainer className="items-center gap-[22px] pb-[100px] pt-20" data-node-id="439:2037">
-      <PageHeader className="pb-2.5" title="설정" />
-
-      <UserProfileSummary />
-
-      <SettingsSection title="계정 관리">
-        <Link className="flex h-[57px] w-full items-center justify-between rounded-[20px] border-0 bg-white p-5 text-left" href="/login">
-          <strong className="text-sm leading-normal">로그아웃</strong>
-          <Image alt="" className="size-[18px]" height={18} src="/icons/settings/sign-out.svg" width={18} />
-        </Link>
-      </SettingsSection>
-
-      <SettingsSection title="계획 관리">
-        <div className="flex w-full flex-col gap-3">
-          {planSettings.map((setting) => <SettingsRow key={setting.label} {...setting} />)}
-        </div>
-      </SettingsSection>
-
-      <SettingsSection title="계획･계정 정리">
-        <div className="flex w-full flex-col gap-3">
-          {cleanupSettings.map((setting) => <SettingsRow key={setting.label} {...setting} />)}
-        </div>
-      </SettingsSection>
-      <BottomTabBar activeTab="settings" />
-    </PageContainer>
-  );
+  return <PageContainer className="items-center gap-[22px] pb-[100px] pt-20 lg:max-w-none lg:gap-10 lg:px-[120px] lg:pb-[50px] lg:pt-0" data-node-id="439:4905">
+    <PageHeader className="pb-2.5 lg:pb-0" title="설정" />
+    <UserProfileSummary />
+    <div className="grid w-full grid-cols-1 gap-[22px] lg:grid-cols-2 lg:gap-x-5">
+      <Section className="order-1 lg:col-start-1 lg:row-start-1" title="계정 관리"><Link className="flex h-[57px] items-center justify-between rounded-[20px] bg-white p-5" href="/login"><strong className="text-sm lg:text-base">로그아웃</strong><Image alt="" width={18} height={18} src="/icons/settings/sign-out.svg" /></Link></Section>
+      <Section className="order-2 lg:col-start-2 lg:row-span-2 lg:row-start-1" title="계획 관리"><div className="flex flex-col gap-3">{plans.map((x) => <Row key={x.label} {...x} />)}</div></Section>
+      <Section className="order-3 lg:col-start-1 lg:row-start-2" title="계획･계정 정리"><div className="flex flex-col gap-3">{cleanup.map((x) => <Row key={x.label} {...x} />)}</div></Section>
+    </div>
+    <BottomTabBar activeTab="settings" className="md:!flex lg:!hidden" />
+  </PageContainer>;
 }

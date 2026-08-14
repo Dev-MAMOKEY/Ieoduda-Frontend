@@ -7,7 +7,7 @@ const variants = {
 export function Card({ children, variant = "info", className = "", ...props }) {
   return (
     <section
-      className={`flex w-full max-w-[340px] flex-col items-center overflow-hidden rounded-[30px] bg-white ${variants[variant]} ${className}`}
+      className={`flex w-full max-w-[340px] flex-col items-center overflow-hidden rounded-[30px] bg-white md:max-w-[460px] md:gap-10 md:px-10 ${variants[variant]} ${className}`}
       {...props}
     >
       {children}

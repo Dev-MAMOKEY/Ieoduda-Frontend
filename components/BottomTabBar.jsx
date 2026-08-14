@@ -7,11 +7,11 @@ const tabs = [
   { id: "settings", label: "설정", href: "/profile", icon: "/icons/layout/header/profile.svg" },
 ];
 
-export function BottomTabBar({ activeTab }) {
+export function BottomTabBar({ activeTab, className = "" }) {
   return (
     <nav
       aria-label="주요 메뉴"
-      className="fixed bottom-[max(20px,env(safe-area-inset-bottom))] left-1/2 z-50 flex h-[66px] w-[240px] -translate-x-1/2 items-center justify-between overflow-hidden rounded-[40px] border-[1.2px] border-solid border-[#d9d9d9] bg-white p-2.5 shadow-[0_1px_3px_rgba(40,41,46,0.06)]"
+      className={`fixed bottom-[max(20px,env(safe-area-inset-bottom))] left-1/2 z-50 flex h-[66px] w-[240px] -translate-x-1/2 items-center justify-between overflow-hidden rounded-[40px] border-[1.2px] border-solid border-[#d9d9d9] bg-white p-2.5 shadow-[0_1px_3px_rgba(40,41,46,0.06)] md:hidden ${className}`}
       data-node-id="513:3059"
     >
       {tabs.map((tab) => {
@@ -29,7 +29,7 @@ export function BottomTabBar({ activeTab }) {
             href={tab.href}
             key={tab.id}
           >
-            <Image alt="" className="size-6 shrink-0" height={24} src={tab.icon} width={24} />
+            <Image alt="" className={`${tab.id === "home" ? "size-[26px]" : "size-6"} shrink-0`} height={tab.id === "home" ? 26 : 24} src={tab.icon} width={tab.id === "home" ? 26 : 24} />
             {isActive && <span className="text-[13px] font-semibold leading-none text-[#6e6e6e]">{tab.label}</span>}
           </Link>
         );

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { DesktopHeader } from "@/components/DesktopHeader";
 
 const agreements = [
   "지정 확인자 2명의 신고가 필요합니다.",
@@ -13,9 +14,11 @@ const agreements = [
 export default function AgreementPage() {
   return (
     <main
-      className="mx-auto flex min-h-dvh w-full max-w-[390px] items-center justify-center bg-[#f0f0f2] px-6 py-[70px] text-[#28292e]"
+      className="mx-auto flex min-h-dvh w-full max-w-[390px] items-center justify-center bg-[#f0f0f2] px-6 py-[70px] text-[#28292e] md:max-w-none md:flex-col md:p-0"
       data-node-id="439:1176"
     >
+      <DesktopHeader authenticated />
+      <div className="flex w-full flex-1 items-center justify-center md:px-[140px] md:py-[50px]">
       <Card data-node-id="439:1177" variant="agreement">
         <h1 className="w-full text-center text-base font-bold leading-normal">
           사후 인계 안내 필수 동의
@@ -42,6 +45,7 @@ export default function AgreementPage() {
 
         <Button href="/plan-info">동의 후 시작하기</Button>
       </Card>
+      </div>
     </main>
   );
 }

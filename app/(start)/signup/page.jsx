@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/Button";
+import { DesktopHeader } from "@/components/DesktopHeader";
 
 const fields = [
   {
@@ -35,10 +36,12 @@ const fields = [
 export default function SignupPage() {
   return (
     <main
-      className="mx-auto flex min-h-dvh w-full max-w-[390px] items-center bg-[#f0f0f2] px-6 py-[70px] text-[#28292e]"
+      className="mx-auto flex min-h-dvh w-full max-w-[390px] items-center bg-[#f0f0f2] px-6 py-[70px] text-[#28292e] md:max-w-none md:flex-col md:p-0"
       data-node-id="439:1226"
     >
-      <form className="flex w-full flex-col gap-5">
+      <DesktopHeader />
+      <div className="hidden min-h-0 w-full flex-1 md:block" />
+      <form className="flex w-full flex-col gap-5 md:w-[460px] md:gap-6">
         <h1 className="text-[22px] font-bold leading-normal">회원가입</h1>
 
         {fields.map((field) => (
@@ -47,7 +50,7 @@ export default function SignupPage() {
               {field.label}
             </label>
             <input
-              className="h-[41px] w-full rounded-[20px] border-0 bg-white px-5 text-sm outline-none placeholder:text-[#a8a8a8] focus-visible:ring-2 focus-visible:ring-[#a8a8a8]/50"
+              className="h-[41px] w-full rounded-[20px] border-0 bg-white px-5 text-sm outline-none placeholder:text-[#a8a8a8] focus-visible:ring-2 focus-visible:ring-[#a8a8a8]/50 md:h-[48px] md:rounded-[30px] md:text-base"
               id={field.id}
               name={field.id}
               type={field.type}
@@ -68,6 +71,7 @@ export default function SignupPage() {
           </Link>
         </p>
       </form>
+      <div className="hidden min-h-0 w-full flex-1 md:block" />
     </main>
   );
 }
