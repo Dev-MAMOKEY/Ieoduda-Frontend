@@ -204,7 +204,7 @@ function HandoffGroup({ type }: { type: string }) {
           {members.filter((p) => p.complete).length}명 점검 완료
         </span>
       </div>
-      <div className="flex flex-col gap-5 lg:flex-row">
+      <div className="flex flex-col gap-5 md:flex-row">
         {members.map((person) => (
           <HandoffCard key={person.name} person={person} />
         ))}
@@ -224,12 +224,12 @@ function RoleContent() {
   const verifier = person.type === "verifier";
 
   return (
-    <PageContainer className="role-preview gap-[22px] pb-[100px] pt-[70px] lg:max-w-none lg:gap-[30px] lg:px-[120px] lg:pb-[50px] lg:pt-0">
+    <PageContainer className="role-preview gap-[22px] pb-[100px] pt-[70px] md:max-w-none md:gap-[30px] md:px-[120px] md:pb-[50px] md:pt-0">
       <PageHeader
         title={tab === "role" ? "역할 점검" : "인계 점검"}
-        className="pb-1.5 lg:pb-0"
+        className="pb-1.5 md:pb-0"
       />
-      <nav aria-label="점검 종류" className="flex gap-[30px] lg:gap-9">
+      <nav aria-label="점검 종류" className="flex gap-[30px] md:gap-9">
         {[
           ["role", "역할 점검"],
           ["handoff", "인계 점검"],
@@ -238,7 +238,7 @@ function RoleContent() {
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`border-0 bg-transparent pb-1 text-base font-bold lg:text-lg ${tab === id ? "border-b-[1.2px] border-[#28292e]" : "text-[#a8a8a8]"}`}
+            className={`border-0 bg-transparent pb-1 text-base font-bold md:text-lg ${tab === id ? "border-b-[1.2px] border-[#28292e]" : "text-[#a8a8a8]"}`}
           >
             {label}
           </button>
@@ -253,13 +253,13 @@ function RoleContent() {
                   key={p.id}
                   type="button"
                   onClick={() => setSelectedId(p.id)}
-                  className={`rounded-[30px] bg-white px-4 py-3 text-sm lg:px-5 lg:text-base ${p.id === person.id ? "border-[1.6px] border-[#838383] font-semibold text-[#838383]" : "border-0 text-[#a8a8a8]"}`}
+                  className={`rounded-[30px] bg-white px-4 py-3 text-sm md:px-5 md:text-base ${p.id === person.id ? "border-[1.6px] border-[#838383] font-semibold text-[#838383]" : "border-0 text-[#a8a8a8]"}`}
                 >
                   {p.name}
                 </button>
               ))}
             </div>
-            <article className="flex flex-col gap-[30px] rounded-[20px] bg-white px-5 pb-[22px] pt-[30px] lg:px-[30px]">
+            <article className="flex flex-col gap-[30px] rounded-[20px] bg-white px-5 pb-[22px] pt-[30px] md:px-[30px]">
               <div className="flex flex-col gap-3">
                 <div className="flex justify-between">
                   <h2 className="text-lg font-bold lg:text-xl">
@@ -318,12 +318,12 @@ function RoleContent() {
               )}
             </article>
           </section>
-          <div className="flex flex-col gap-[22px] lg:gap-[30px]">
-            <Button className="lg:h-[52px]" type="button">
+          <div className="flex flex-col gap-[22px] md:gap-[30px]">
+            <Button className="md:h-[52px]" type="button">
               수락 요청 다시 보내기
             </Button>
             <OutlineButton
-              className="lg:h-[52px] lg:text-base"
+              className="md:h-[52px] md:text-base"
               href={verifier ? "/role/verifier/edit" : "/role/manager/edit"}
             >
               {verifier ? "확인자 수정하기" : "담당자 수정하기"}
@@ -336,7 +336,7 @@ function RoleContent() {
           <HandoffGroup type="확인자" />
         </div>
       )}
-      <BottomTabBar activeTab="inspection" className="md:!flex lg:!hidden" />
+      <BottomTabBar activeTab="inspection" />
     </PageContainer>
   );
 }

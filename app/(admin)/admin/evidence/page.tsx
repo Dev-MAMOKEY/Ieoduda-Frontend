@@ -126,19 +126,7 @@ export default function EvidencePage() {
       </header>
       <div className="mx-auto flex max-w-[390px] flex-col gap-[22px] lg:max-w-none lg:gap-0">
         <header className="grid grid-cols-[24px_1fr_24px] pb-5 lg:flex lg:justify-center lg:pb-0">
-          <button
-            className="border-0 bg-transparent lg:hidden"
-            onClick={() => history.back()}
-            type="button"
-          >
-            <Image
-              alt=""
-              className="rotate-180"
-              width={24}
-              height={24}
-              src="/icons/common/caret-right.svg"
-            />
-          </button>
+          <span />
           <h1 className="text-center text-lg font-bold lg:text-xl">
             증빙 삭제 감사
           </h1>

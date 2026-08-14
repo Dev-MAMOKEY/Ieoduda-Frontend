@@ -53,15 +53,7 @@ export default function EmailPage() {
       </header>
       <div className="mx-auto flex max-w-[390px] flex-col gap-[22px] lg:max-w-none lg:gap-0">
         <header className="grid grid-cols-[24px_1fr_24px] pb-5 lg:flex lg:justify-center lg:pb-0">
-          <Link className="lg:hidden" href="/admin/evidence">
-            <Image
-              alt=""
-              className="rotate-180"
-              width={24}
-              height={24}
-              src="/icons/common/caret-right.svg"
-            />
-          </Link>
+          <span />
           <h1 className="text-center text-lg font-bold lg:text-xl">
             이메일 발송 감사
           </h1>

@@ -69,7 +69,7 @@ function Row({
 }
 function Section({ title, children, className = "" }: { title: string; children: ReactNode; className?: string }) {
   return (
-    <section className={`flex flex-col gap-3.5 lg:gap-[22px] ${className}`}>
+    <section className={`flex flex-col gap-3.5 md:gap-[22px] ${className}`}>
       <h2 className="text-sm font-bold">{title}</h2>
       {children}
     </section>
@@ -79,14 +79,14 @@ function Section({ title, children, className = "" }: { title: string; children:
 export default function ProfileSettingsPage() {
   return (
     <PageContainer
-      className="items-center gap-[22px] pb-[100px] pt-20 lg:max-w-none lg:gap-10 lg:px-[120px] lg:pb-[50px] lg:pt-0"
+      className="items-center gap-[22px] pb-[100px] pt-20 md:max-w-none md:gap-10 md:px-[120px] md:pb-[50px] md:pt-0"
       data-node-id="439:4905"
     >
-      <PageHeader className="pb-2.5 lg:pb-0" title="설정" />
+      <PageHeader className="pb-2.5 md:pb-0" title="설정" />
       <UserProfileSummary />
-      <div className="grid w-full grid-cols-1 gap-[22px] lg:grid-cols-2 lg:gap-x-5">
+      <div className="grid w-full grid-cols-1 gap-[22px] md:grid-cols-2 md:gap-x-5">
         <Section
-          className="order-1 lg:col-start-1 lg:row-start-1"
+          className="order-1 md:col-start-1 md:row-start-1"
           title="계정 관리"
         >
           <Link
@@ -103,7 +103,7 @@ export default function ProfileSettingsPage() {
           </Link>
         </Section>
         <Section
-          className="order-2 lg:col-start-2 lg:row-span-2 lg:row-start-1"
+          className="order-2 md:col-start-2 md:row-span-2 md:row-start-1"
           title="계획 관리"
         >
           <div className="flex flex-col gap-3">
@@ -113,7 +113,7 @@ export default function ProfileSettingsPage() {
           </div>
         </Section>
         <Section
-          className="order-3 lg:col-start-1 lg:row-start-2"
+          className="order-3 md:col-start-1 md:row-start-2"
           title="계획･계정 정리"
         >
           <div className="flex flex-col gap-3">
@@ -123,7 +123,7 @@ export default function ProfileSettingsPage() {
           </div>
         </Section>
       </div>
-      <BottomTabBar activeTab="settings" className="md:!flex lg:!hidden" />
+      <BottomTabBar activeTab="settings" />
     </PageContainer>
   );
 }
