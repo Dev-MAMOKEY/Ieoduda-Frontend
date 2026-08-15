@@ -2,9 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Button } from "@/components/Button";
 import { DesktopHeader } from "@/components/DesktopHeader";
+import { FormField } from "@/components/FormField";
+import { getApiErrorMessage, login } from "@/lib/api/auth";
+import {
+  hasFieldErrors,
+  validateLogin,
+  type FieldErrors,
+  type LoginValues,
+} from "@/lib/validation/auth";
 
 const fields = [
   {
@@ -25,10 +33,44 @@ const fields = [
 
 export default function LoginPage() {
   const router = useRouter();
+  const [errorMessage, setErrorMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<LoginValues>>({});
+  const [pending, setPending] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const clearFieldError = (field: keyof LoginValues) => {
+    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+    setErrorMessage("");
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.push("/service-info");
+    if (pending) return;
+
+    const formData = new FormData(event.currentTarget);
+    const values = {
+      email: String(formData.get("email") ?? "").trim(),
+      password: String(formData.get("password") ?? ""),
+    };
+    const validationErrors = validateLogin(values);
+
+    // API 요청 전에 필드별 입력값을 검증하고 오류를 각 입력창 아래에 표시합니다.
+    if (hasFieldErrors(validationErrors)) {
+      setFieldErrors(validationErrors);
+      return;
+    }
+
+    setPending(true);
+    setErrorMessage("");
+    setFieldErrors({});
+
+    try {
+      // 로그인 성공 시 토큰을 저장하고 로그인 이후 안내 화면으로 이동합니다.
+      await login(values);
+      router.replace("/service-info");
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, "로그인에 실패했습니다."));
+      setPending(false);
+    }
   };
 
   return (
@@ -40,30 +82,35 @@ export default function LoginPage() {
       <div className="hidden min-h-0 w-full flex-1 md:block" />
       <form
         className="flex w-full flex-col gap-5 md:w-[460px] md:gap-6"
+        noValidate
         onSubmit={handleSubmit}
       >
         <h1 className="text-[22px] font-bold leading-normal">로그인</h1>
 
         {fields.map((field) => (
-          <div className="flex w-full flex-col gap-2" key={field.id}>
-            <label
-              className="px-2.5 text-base font-semibold"
-              htmlFor={field.id}
-            >
-              {field.label}
-            </label>
-            <input
-              className="h-[41px] w-full rounded-[20px] border-0 bg-white px-5 text-sm outline-none placeholder:text-[#a8a8a8] focus-visible:ring-2 focus-visible:ring-[#a8a8a8]/50 md:h-[48px] md:text-base"
-              id={field.id}
-              name={field.id}
-              type={field.type}
-              autoComplete={field.autoComplete}
-              placeholder={field.placeholder}
-            />
-          </div>
+          <FormField
+            autoComplete={field.autoComplete}
+            error={fieldErrors[field.id as keyof LoginValues]}
+            id={field.id}
+            key={field.id}
+            label={field.label}
+            name={field.id}
+            onChange={() => clearFieldError(field.id as keyof LoginValues)}
+            placeholder={field.placeholder}
+            required
+            type={field.type}
+          />
         ))}
 
-        <Button type="submit">로그인하기</Button>
+        {errorMessage && (
+          <p className="px-2.5 text-sm text-red-600" role="alert">
+            {errorMessage}
+          </p>
+        )}
+
+        <Button disabled={pending} type="submit">
+          {pending ? "로그인 중..." : "로그인하기"}
+        </Button>
 
         <p className="flex w-full items-center justify-center gap-2 text-sm whitespace-nowrap">
           <span className="text-[#a8a8a8]">아직 회원이 아니신가요?</span>
