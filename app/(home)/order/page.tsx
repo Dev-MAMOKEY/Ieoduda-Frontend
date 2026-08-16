@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { PageContainer } from "@/components/PageContainer";
@@ -27,28 +27,55 @@ export default function OrderPage() {
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const itemsRef = useRef<OrderCheckItem[]>([]);
+  const dragStartItemsRef = useRef<OrderCheckItem[]>([]);
+  const dragChangedRef = useRef(false);
 
   useEffect(() => {
     // 서버가 저장한 최신 실행 순서와 기존 충돌 상태를 함께 불러옵니다.
     getMyPlan().then(async (plan) => {
       const order = await getOrderCheck(plan.planId);
-      setPlanId(plan.planId); setItems(order.items); setHasConflict(order.hasConflict);
+      setPlanId(plan.planId);
+      setItems(order.items);
+      itemsRef.current = order.items;
+      setHasConflict(order.hasConflict);
     }).catch((error) => setErrorMessage(getApiErrorMessage(error, "실행 순서를 불러오지 못했습니다.")));
   }, []);
 
-  // 드래그 결과를 서버에 저장하고 서버가 다시 판정한 충돌 정보로 화면을 교체합니다.
-  const moveAndCheck = async (targetId: number) => {
-    if (draggedId == null || draggedId === targetId || planId == null) return;
-    const next = [...items];
+  // 드래그 중에는 화면 순서만 변경하고 서버 요청은 보내지 않습니다.
+  const moveItem = (targetId: number) => {
+    if (draggedId == null || draggedId === targetId) return;
+    const next = [...itemsRef.current];
     const from = next.findIndex((item) => item.itemId === draggedId);
     const to = next.findIndex((item) => item.itemId === targetId);
-    const [moved] = next.splice(from, 1); next.splice(to, 0, moved);
+    if (from < 0 || to < 0) return;
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    dragChangedRef.current = true;
+    itemsRef.current = next;
     setItems(next);
+  };
+
+  // 드래그 종료 시 최종 순서를 한 번 저장하고 서버의 충돌 판정 결과를 반영합니다.
+  const saveOrder = async () => {
+    if (planId == null || reordering || !dragChangedRef.current) return;
+    dragChangedRef.current = false;
+    setReordering(true);
+    setErrorMessage("");
     try {
-      const checked = await reorderPlanItems(planId, next.map((item) => item.itemId));
-      setItems(checked.items); setHasConflict(checked.hasConflict);
-    } catch (error) { setErrorMessage(getApiErrorMessage(error, "순서를 변경하지 못했습니다.")); }
+      const checked = await reorderPlanItems(planId, itemsRef.current.map((item) => item.itemId));
+      setItems(checked.items);
+      itemsRef.current = checked.items;
+      setHasConflict(checked.hasConflict);
+    } catch (error) {
+      setItems(dragStartItemsRef.current);
+      itemsRef.current = dragStartItemsRef.current;
+      setErrorMessage(getApiErrorMessage(error, "순서를 변경하지 못했습니다."));
+    } finally {
+      setReordering(false);
+    }
   };
 
   const handleConfirm = async () => {
@@ -72,8 +99,16 @@ export default function OrderPage() {
         key={item.itemId}
         onClick={() => setSelectedId(item.itemId)}
         onFocus={() => setSelectedId(item.itemId)}
-        onPointerCancel={() => setDraggedId(null)}
+        onPointerCancel={() => {
+          setDraggedId(null);
+          dragChangedRef.current = false;
+          setItems(dragStartItemsRef.current);
+          itemsRef.current = dragStartItemsRef.current;
+        }}
         onPointerDown={(event) => {
+          if (reordering) return;
+          dragStartItemsRef.current = itemsRef.current;
+          dragChangedRef.current = false;
           setDraggedId(item.itemId);
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
@@ -82,13 +117,14 @@ export default function OrderPage() {
           const target = document.elementsFromPoint(event.clientX, event.clientY).find(
             (element) => element instanceof HTMLElement && element.dataset.orderId,
           );
-          if (target instanceof HTMLElement) void moveAndCheck(Number(target.dataset.orderId));
+          if (target instanceof HTMLElement) moveItem(Number(target.dataset.orderId));
         }}
         onPointerUp={(event) => {
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
           setDraggedId(null);
+          void saveOrder();
         }}
         style={{ viewTransitionName: `order-${item.itemId}` }}
         tabIndex={0}
@@ -105,6 +141,6 @@ export default function OrderPage() {
         </div>
       </article>;
     })}</div>
-    <Button disabled={hasConflict || pending || items.length === 0} onClick={handleConfirm} type="button">{pending ? "확정 중..." : "순서 확정하기"}</Button>
+    <Button disabled={hasConflict || pending || reordering || items.length === 0} onClick={handleConfirm} type="button">{pending ? "확정 중..." : "순서 확정하기"}</Button>
   </PageContainer>;
 }

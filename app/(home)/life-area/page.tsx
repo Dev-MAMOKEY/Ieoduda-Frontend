@@ -42,6 +42,7 @@ type PlanItemCardProps = {
 type AssistantPayload = {
   type?: string;
   question?: string;
+  notice?: string;
   items?: Array<Partial<PlanItem>>;
 };
 
@@ -60,7 +61,7 @@ function getAssistantPayload(message: ConversationMessage) {
 function getMessageContent(message: ConversationMessage) {
   const payload = getAssistantPayload(message);
   if (payload?.type === "QUESTION" && payload.question) return payload.question;
-  if (payload?.type === "RESULT") return "요청하신 내용을 계획에 반영했어요.";
+  if (payload?.type === "RESULT") return payload.notice ?? "요청하신 내용을 계획에 반영했어요.";
 
   return message.content;
 }
@@ -173,8 +174,17 @@ export default function LifeAreaPage() {
       if (!active) return;
       setPlanId(plan.planId);
       setConversationId(nextConversationId);
-      setMessages(history?.messages ?? []);
-      setItems(areas.flatMap((area) => area.items));
+      const planItems = areas.flatMap((area) => area.items);
+      const nextMessages = history?.messages ?? [];
+      // 계획 홈의 수정 버튼으로 진입하면 전체 계획을 최신 채팅 결과처럼 바로 보여줍니다.
+      const showPlans = new URLSearchParams(window.location.search).get("showPlans") === "true";
+      setMessages(showPlans && planItems.length > 0 ? [...nextMessages, {
+        messageId: -Date.now(),
+        role: "ASSISTANT",
+        content: JSON.stringify({ type: "RESULT", notice: "작성된 전체 계획을 불러왔어요." }),
+        createdAt: new Date().toISOString(),
+      }] : nextMessages);
+      setItems(planItems);
     }).catch((error) => active && setErrorMessage(getApiErrorMessage(error, "계획 대화를 불러오지 못했습니다.")));
     return () => { active = false; };
   }, []);
@@ -281,10 +291,12 @@ export default function LifeAreaPage() {
     {messages.map((entry) => {
       return <section className="flex w-full flex-col gap-[22px]" key={entry.messageId}>
         <div className={`max-w-[85%] rounded-[30px] px-[22px] py-[18px] text-sm leading-6 ${entry.role === "USER" ? "self-end bg-white" : "self-start bg-[#d5d5d5] font-semibold"}`}>{getMessageContent(entry)}</div>
-        {entry.messageId === latestResultMessageId && items.length > 0 && <div className="grid w-full gap-[22px] lg:grid-cols-3">{items.map((item, index) => <PlanItemCard busy={busyItemId === item.itemId} displayOrder={index + 1} item={item} key={item.itemId} onApprove={() => handleApprove(item.itemId)} onDelete={() => handleDelete(item.itemId)} onSave={(request) => handleUpdate(item.itemId, request)} />)}</div>}
+        {entry.messageId === latestResultMessageId && items.length > 0 && <>
+          <div className="grid w-full gap-[22px] lg:grid-cols-3">{items.map((item, index) => <PlanItemCard busy={busyItemId === item.itemId} displayOrder={index + 1} item={item} key={item.itemId} onApprove={() => handleApprove(item.itemId)} onDelete={() => handleDelete(item.itemId)} onSave={(request) => handleUpdate(item.itemId, request)} />)}</div>
+          <Button className="md:h-[52px]" href="/manager">역할 담당자 등록하기</Button>
+        </>}
       </section>;
     })}
-    {items.length > 0 && <Button className="md:h-[52px]" href="/manager">역할 담당자 등록하기</Button>}
     {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
     <div aria-hidden className="h-[120px] w-full shrink-0" ref={chatEndRef} />
     <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-[390px] px-6 pb-6 md:left-[140px] md:right-[140px] md:w-auto md:max-w-none md:px-0"><form className="flex rounded-[30px] bg-white px-[22px] py-3.5 shadow" onSubmit={handleSubmit}><input ref={messageInputRef} aria-label="계획 메시지" className="min-w-0 flex-1 bg-transparent text-sm outline-none" disabled={conversationId == null} onChange={(event) => setMessage(event.target.value)} placeholder={pending ? "답변을 기다리는 동안 다음 내용을 입력할 수 있어요" : "계획 내용을 입력해 주세요"} value={message} /><button aria-label="메시지 보내기" disabled={pending || !message.trim()} type="submit"><Image src="/icons/plan/paper-plane-tilt.svg" alt="" width={24} height={24} /></button></form></div>

@@ -86,6 +86,57 @@ export interface RecipientRegisterRequest {
   backup?: { name: string; email: string };
 }
 
+export interface RoleCheckSummary {
+  type: "RECIPIENT" | "CONFIRMER";
+  id: number;
+  name: string;
+  acceptanceStatus: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
+}
+
+export interface RecipientDetailResponse {
+  assigneeId: number;
+  name: string;
+  email: string;
+  roleType: "FAMILY_MANAGER" | "WORK_MANAGER" | "RELATIONSHIP_MANAGER";
+  acceptanceStatus: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
+  maxWaitHours: number;
+  items: PlanItem[];
+}
+
+export interface RecipientUpdateRequest {
+  name: string;
+  email: string;
+}
+
+export interface RecipientUpdateResponse extends RecipientUpdateRequest {
+  assigneeId: number;
+  roleType: "FAMILY_MANAGER" | "WORK_MANAGER" | "RELATIONSHIP_MANAGER";
+  acceptanceStatus: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
+  emailSent: boolean;
+  bounceType: "NONE" | "TEMPORARY" | "PERMANENT" | null;
+}
+
+export interface HandoffCheckAssignee {
+  assigneeId: number;
+  name: string;
+  roleType: "FAMILY_MANAGER" | "WORK_MANAGER" | "RELATIONSHIP_MANAGER";
+  isEmailSent: boolean;
+  isRoleAccepted: boolean;
+  backupName: string | null;
+  isBackupAccepted: boolean;
+  inquiry: string | null;
+  isReady: boolean;
+}
+
+export interface HandoffCheckStatusResponse {
+  assigneeTotalCount: number;
+  assigneeReadyCount: number;
+  assignees: HandoffCheckAssignee[];
+  confirmerTotalCount: number;
+  confirmerReadyCount: number;
+  confirmers: unknown[];
+}
+
 export interface OrderCheckItem {
   itemId: number;
   sortOrder: number;

@@ -43,7 +43,10 @@ export default function PlanPage() {
     return () => { active = false; };
   }, []);
 
-  const items = areas.flatMap((area) => area.items.map((item) => ({ ...item, category: area.category })));
+  // 삶의 구역별 항목을 하나로 합친 뒤 서버에 확정된 실행 순서대로 표시합니다.
+  const items = areas
+    .flatMap((area) => area.items.map((item) => ({ ...item, category: area.category })))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
     <PageContainer className="items-center gap-[22px] pb-[100px] pt-[70px]">
@@ -51,13 +54,14 @@ export default function PlanPage() {
       <section className="flex w-full flex-col items-center gap-2 text-center">
         <h2 className="text-xl font-bold">나의 삶의 계획</h2>
         <p className="text-sm font-medium text-[#838383]">
-          {plan ? `상태: ${plan.status} · 계획 #${plan.planId}` : "계획을 불러오는 중입니다."}
+          지금은 계획 대기 중이예요 <br />
+          평상시엔 아무 일도 일어나지 않아요
         </p>
       </section>
       {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
       <div className="flex w-full gap-5 py-1.5">
-        <Button className="min-w-0 flex-1" href="/life-area">계획 작성·수정</Button>
-        <Button className="min-w-0 flex-1" href="/manager">담당자 등록</Button>
+        <Button className="min-w-0 flex-1" href="/life-area?showPlans=true">계획 작성·수정</Button>
+        <Button className="min-w-0 flex-1" href="/manager/edit">담당자 수정</Button>
       </div>
       <Link className="flex min-h-[60px] w-full items-center justify-between rounded-[20px] bg-[#d9d9d9] px-5 py-[18px]" href="/order">
         <strong>미해결 충돌</strong>

@@ -14,6 +14,11 @@ import type {
   PlanItem,
   PlanItemUpdateRequest,
   RecipientRegisterRequest,
+  RecipientDetailResponse,
+  RecipientUpdateRequest,
+  RecipientUpdateResponse,
+  RoleCheckSummary,
+  HandoffCheckStatusResponse,
 } from "./plan-types";
 
 // API 공통 응답에서 실제 화면 데이터만 꺼내고 비정상 응답을 차단합니다.
@@ -96,6 +101,33 @@ export async function deletePlanItem(planId: number, itemId: number) {
 export async function registerRecipients(planId: number, recipients: RecipientRegisterRequest[]) {
   const { data } = await apiClient.post(`/api/plans/${planId}/recipients`, { recipients });
   return data.data;
+}
+
+export async function getRoleChecks(planId: number) {
+  // 역할 점검 목록에서 계획에 등록된 담당자 ID를 조회합니다.
+  const { data } = await apiClient.get<PlanApiResponse<RoleCheckSummary[]>>(`/api/plans/${planId}/role-checks`);
+  return unwrap(data);
+}
+
+export async function getRecipientDetail(planId: number, assigneeId: number) {
+  // 담당자 이름·이메일과 배정된 계획 항목 전체를 상세 조회합니다.
+  const { data } = await apiClient.get<PlanApiResponse<RecipientDetailResponse>>(`/api/plans/${planId}/recipients/${assigneeId}`);
+  return unwrap(data);
+}
+
+export async function updateRecipient(planId: number, assigneeId: number, request: RecipientUpdateRequest) {
+  // 이름과 이메일만 수정하며 이메일 변경 시 서버가 수락 상태와 재발송을 처리합니다.
+  const { data } = await apiClient.put<PlanApiResponse<RecipientUpdateResponse>>(
+    `/api/plans/${planId}/recipients/${assigneeId}`,
+    request,
+  );
+  return unwrap(data);
+}
+
+export async function getHandoffChecks(planId: number) {
+  // 기존 대체 담당자 등록 여부와 이름을 인계 점검 데이터에서 조회합니다.
+  const { data } = await apiClient.get<PlanApiResponse<HandoffCheckStatusResponse>>(`/api/plans/${planId}/handoff-checks`);
+  return unwrap(data);
 }
 
 export async function getOrderCheck(planId: number) {
