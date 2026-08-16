@@ -1,8 +1,16 @@
+// 사후 인계 필수 동의를 서버에 저장하고 계획 작성 안내로 이동하는 화면입니다.
+
+"use client";
+
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { DesktopHeader } from "@/components/DesktopHeader";
 import { AuthGuard } from "@/components/AuthGuard";
+import { getApiErrorMessage } from "@/lib/api/auth";
+import { agreeToHandoff } from "@/lib/api/plan";
 
 const agreements = [
   "지정 확인자 2명의 신고가 필요합니다.",
@@ -13,6 +21,24 @@ const agreements = [
 ];
 
 export default function AgreementPage() {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // 중복 제출을 막고 동의가 저장된 뒤에만 다음 화면으로 이동합니다.
+  const handleAgree = async () => {
+    if (pending) return;
+    setPending(true);
+    setErrorMessage("");
+    try {
+      await agreeToHandoff();
+      router.replace("/plan-info");
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, "동의 처리에 실패했습니다."));
+      setPending(false);
+    }
+  };
+
   return (
     <AuthGuard>
       <main
@@ -45,7 +71,10 @@ export default function AgreementPage() {
             ))}
           </ul>
 
-          <Button href="/plan-info">동의 후 시작하기</Button>
+          {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
+          <Button disabled={pending} onClick={handleAgree} type="button">
+            {pending ? "처리 중..." : "동의 후 시작하기"}
+          </Button>
         </Card>
       </div>
       </main>

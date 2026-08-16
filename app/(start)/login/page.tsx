@@ -1,3 +1,5 @@
+// 로그인 성공 후 토큰을 저장하고 사후 인계 동의 상태에 따라 이동 경로를 결정하는 화면입니다.
+
 "use client";
 
 import Link from "next/link";
@@ -7,6 +9,7 @@ import { Button } from "@/components/Button";
 import { DesktopHeader } from "@/components/DesktopHeader";
 import { FormField } from "@/components/FormField";
 import { getApiErrorMessage, login } from "@/lib/api/auth";
+import { getConsent } from "@/lib/api/plan";
 import {
   hasFieldErrors,
   validateLogin,
@@ -66,7 +69,9 @@ export default function LoginPage() {
     try {
       // 로그인 성공 시 토큰을 저장하고 로그인 이후 안내 화면으로 이동합니다.
       await login(values);
-      router.replace("/service-info");
+      // 로그인 직후 동의 상태를 조회해 신규·기존 사용자 흐름을 나눕니다.
+      const consent = await getConsent();
+      router.replace(consent.agreed ? "/plan" : "/service-info");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "로그인에 실패했습니다."));
       setPending(false);

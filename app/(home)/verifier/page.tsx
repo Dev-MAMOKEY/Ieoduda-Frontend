@@ -1,3 +1,5 @@
+// 지정확인자 입력 목록을 관리하고 서버에 한 번에 등록하는 화면입니다.
+
 "use client";
 
 import Image from "next/image";
@@ -8,6 +10,8 @@ import { FormField } from "@/components/FormField";
 import { OutlineButton } from "@/components/OutlineButton";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
+import { getApiErrorMessage } from "@/lib/api/auth";
+import { getMyPlan, registerConfirmers } from "@/lib/api/plan";
 
 const MAX_VERIFIERS = 5;
 
@@ -43,6 +47,8 @@ function VerifierFields({ index }: { index: number }) {
 export default function VerifierPage() {
   const router = useRouter();
   const [verifiers, setVerifiers] = useState([0, 1]);
+  const [pending, setPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const reachedLimit = verifiers.length >= MAX_VERIFIERS;
 
   const addVerifier = () => {
@@ -51,9 +57,30 @@ export default function VerifierPage() {
     );
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  // 동적으로 생성된 폼 값을 모아 Swagger의 confirmers 배열 형태로 전송합니다.
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.push("/life-area");
+    if (pending) return;
+    setPending(true);
+    setErrorMessage("");
+    const formData = new FormData(event.currentTarget);
+    const confirmers = verifiers.map((_, index) => ({
+      name: String(formData.get(`verifiers[${index}].name`) ?? "").trim(),
+      email: String(formData.get(`verifiers[${index}].email`) ?? "").trim(),
+    }));
+    if (confirmers.some((person) => !person.name || !person.email)) {
+      setErrorMessage("모든 지정확인자의 이름과 이메일을 입력해 주세요.");
+      setPending(false);
+      return;
+    }
+    try {
+      const plan = await getMyPlan();
+      await registerConfirmers(plan.planId, confirmers);
+      router.push("/life-area");
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error, "지정확인자를 등록하지 못했습니다."));
+      setPending(false);
+    }
   };
 
   return (
@@ -67,7 +94,8 @@ export default function VerifierPage() {
           <VerifierFields index={index} key={verifier} />
         ))}
 
-        <Button type="submit">등록하기</Button>
+        {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
+        <Button disabled={pending} type="submit">{pending ? "등록 중..." : "등록하기"}</Button>
 
         <OutlineButton
           disabled={reachedLimit}
