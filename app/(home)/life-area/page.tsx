@@ -4,7 +4,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Button } from "@/components/Button";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
@@ -46,6 +46,42 @@ type AssistantPayload = {
   notice?: string;
   items?: Array<Partial<PlanItem>>;
 };
+
+const disclosureScopes = [
+  { label: "가족", value: "FAMILY" },
+  { label: "업무", value: "WORK" },
+  { label: "관계", value: "RELATIONSHIP" },
+] as const;
+
+function AutoResizeTextarea({
+  ariaLabel,
+  className = "",
+  onChange,
+  value,
+}: {
+  ariaLabel: string;
+  className?: string;
+  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
+  value: string;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [value]);
+
+  return <textarea
+    aria-label={ariaLabel}
+    className={`resize-none overflow-hidden rounded-xl bg-white px-3 py-2 text-sm outline-none ${className}`}
+    onChange={onChange}
+    ref={textareaRef}
+    rows={1}
+    value={value}
+  />;
+}
 
 // AI JSON 문자열을 질문과 계획 결과를 구분할 수 있는 객체로 안전하게 변환합니다.
 function getAssistantPayload(message: ConversationMessage) {
@@ -106,12 +142,24 @@ function PlanItemCard({ item, displayOrder, busy, onApprove, onDelete, onSave }:
           <input className="rounded-xl bg-white px-3 py-2 text-sm" aria-label="계획 제목" value={draft.title} onChange={(event) => change("title", event.target.value)} />
           <input className="rounded-xl bg-white px-3 py-2 text-sm" aria-label="계획 대상" placeholder="대상 이름" value={draft.targetName} onChange={(event) => change("targetName", event.target.value)} />
           <input className="rounded-xl bg-white px-3 py-2 text-sm" aria-label="자료 위치 유형" placeholder="자료 위치 유형" value={draft.locationType} onChange={(event) => change("locationType", event.target.value)} />
-          <textarea className="min-h-20 rounded-xl bg-white px-3 py-2 text-sm" aria-label="계획 내용" value={draft.content} onChange={(event) => change("content", event.target.value)} />
-          <textarea className="min-h-16 rounded-xl bg-white px-3 py-2 text-sm" aria-label="수행 행동" value={draft.action} onChange={(event) => change("action", event.target.value)} />
+          <AutoResizeTextarea ariaLabel="계획 내용" className="min-h-20" value={draft.content} onChange={(event) => change("content", event.target.value)} />
+          <AutoResizeTextarea ariaLabel="수행 행동" className="min-h-16" value={draft.action} onChange={(event) => change("action", event.target.value)} />
           <input className="rounded-xl bg-white px-3 py-2 text-sm" aria-label="선행 조건" placeholder="선행 조건(선택)" value={draft.precondition} onChange={(event) => change("precondition", event.target.value)} />
-          <select className="rounded-xl bg-white px-3 py-2 text-sm" aria-label="공개 범위" value={draft.disclosureScope} onChange={(event) => change("disclosureScope", event.target.value)}>
-            <option value="FAMILY">가족</option><option value="WORK">업무</option><option value="RELATIONSHIP">관계</option>
-          </select>
+          <div className="flex flex-col gap-2.5" role="group" aria-label="공개 범위">
+            <span className="px-2.5 text-sm font-semibold">공개 범위</span>
+            <div className="grid grid-cols-3 gap-2.5">
+              {disclosureScopes.map((scope) => {
+                const selected = draft.disclosureScope === scope.value;
+                return <button
+                  aria-pressed={selected}
+                  className={`h-[45px] rounded-[20px] text-sm transition-colors ${selected ? "bg-[#838383] font-semibold text-white" : "bg-white text-[#a8a8a8] hover:bg-[#e4e4e6]"}`}
+                  key={scope.value}
+                  onClick={() => change("disclosureScope", scope.value)}
+                  type="button"
+                >{scope.label}</button>;
+              })}
+            </div>
+          </div>
         </div>
       ) : (
         <div className="flex flex-1 flex-col gap-2">
