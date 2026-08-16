@@ -32,7 +32,7 @@ export function DesktopHeader({
   const user = getCurrentUser();
   return (
     <header className="hidden h-[125px] w-full shrink-0 grid-cols-3 items-center px-[50px] md:grid">
-      <Link className="w-fit p-2 text-[22px] font-semibold" href="/">
+      <Link className="w-fit p-2 text-[22px] font-semibold" href="/plan">
         이어두다
       </Link>
       <div className="flex justify-center">

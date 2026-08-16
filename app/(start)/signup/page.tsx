@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/Button";
-import { DesktopHeader } from "@/components/DesktopHeader";
 import { FormField } from "@/components/FormField";
 import { getApiErrorMessage, signup } from "@/lib/api/auth";
 import {
@@ -94,7 +93,6 @@ export default function SignupPage() {
       className="mx-auto flex min-h-dvh w-full max-w-[390px] items-center bg-[#f0f0f2] px-6 py-[70px] text-[#28292e] md:max-w-none md:flex-col md:p-0"
       data-node-id="439:1226"
     >
-      <DesktopHeader />
       <div className="hidden min-h-0 w-full flex-1 md:block" />
       <form
         className="flex w-full flex-col gap-5 md:w-[460px] md:gap-6"

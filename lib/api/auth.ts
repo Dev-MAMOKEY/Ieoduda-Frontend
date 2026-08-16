@@ -15,6 +15,7 @@ import {
   getRefreshToken,
   setTokens,
 } from "./token-storage";
+import { clearAllStoredConversationIds } from "./conversation-storage";
 
 export async function signup(request: SignupRequest) {
   // 백엔드 회원가입 API에 검증된 이름, 이메일, 비밀번호 정보를 전달합니다.
@@ -65,8 +66,9 @@ export async function logout() {
       await apiClient.post("/auth/logout");
     }
   } finally {
-    // 서버 로그아웃 성공 여부와 관계없이 브라우저의 토큰은 제거합니다.
+    // 서버 로그아웃 성공 여부와 관계없이 브라우저의 인증 및 대화 세션 정보를 제거합니다.
     clearTokens();
+    clearAllStoredConversationIds();
   }
 }
 

@@ -1,129 +1,154 @@
+// 계획 카드 순서를 변경할 때 서버 충돌 점검 결과를 즉시 반영하고 순서를 확정하는 화면입니다.
+
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
-import { getExecutionOrder } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/api/auth";
+import { confirmPlanOrder, getMyPlan, getOrderCheck, reorderPlanItems } from "@/lib/api/plan";
+import type { OrderCheckItem } from "@/lib/api/plan-types";
 
+// 실행 순서 카드 하단의 담당자·대기 기간·승인 상태를 기존 디자인으로 표시합니다.
 function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-[20px] bg-[#f0f0f2] px-5 py-[18px] text-xs">
-      <strong>{label}</strong>
-      <span className="truncate font-medium text-[#838383]">{value}</span>
-    </div>
-  );
+  return <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-[20px] bg-[#f0f0f2] px-5 py-[18px] text-xs">
+    <strong>{label}</strong>
+    <span className="truncate font-medium text-[#838383]">{value}</span>
+  </div>;
 }
 
 export default function OrderPage() {
-  const order = getExecutionOrder();
-  const [items, setItems] = useState(order.items);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const router = useRouter();
+  const [planId, setPlanId] = useState<number | null>(null);
+  const [items, setItems] = useState<OrderCheckItem[]>([]);
+  const [hasConflict, setHasConflict] = useState(false);
+  const [draggedId, setDraggedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [pending, setPending] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const itemsRef = useRef<OrderCheckItem[]>([]);
+  const dragStartItemsRef = useRef<OrderCheckItem[]>([]);
+  const dragChangedRef = useRef(false);
 
-  const moveItem = (targetId: string | undefined) => {
-    if (!draggedId || draggedId === targetId) return;
+  useEffect(() => {
+    // 서버가 저장한 최신 실행 순서와 기존 충돌 상태를 함께 불러옵니다.
+    getMyPlan().then(async (plan) => {
+      const order = await getOrderCheck(plan.planId);
+      setPlanId(plan.planId);
+      setItems(order.items);
+      itemsRef.current = order.items;
+      setHasConflict(order.hasConflict);
+    }).catch((error) => setErrorMessage(getApiErrorMessage(error, "실행 순서를 불러오지 못했습니다.")));
+  }, []);
 
-    setItems((current) => {
-      const fromIndex = current.findIndex((item) => item.id === draggedId);
-      const toIndex = current.findIndex((item) => item.id === targetId);
-      if (fromIndex < 0 || toIndex < 0) return current;
-
-      const next = [...current];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      return next;
-    });
+  // 드래그 중에는 화면 순서만 변경하고 서버 요청은 보내지 않습니다.
+  const moveItem = (targetId: number) => {
+    if (draggedId == null || draggedId === targetId) return;
+    const next = [...itemsRef.current];
+    const from = next.findIndex((item) => item.itemId === draggedId);
+    const to = next.findIndex((item) => item.itemId === targetId);
+    if (from < 0 || to < 0) return;
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    dragChangedRef.current = true;
+    itemsRef.current = next;
+    setItems(next);
   };
 
-  return (
-    <PageContainer className="gap-[22px] py-[70px]" data-node-id="439:1595">
-      <PageHeader
-        title="실행 순서 점검"
-        backHref="/plan"
-        backLabel="계획 홈 화면으로 돌아가기"
-        className="pb-5"
-      />
+  // 드래그 종료 시 최종 순서를 한 번 저장하고 서버의 충돌 판정 결과를 반영합니다.
+  const saveOrder = async () => {
+    if (planId == null || reordering || !dragChangedRef.current) return;
+    dragChangedRef.current = false;
+    setReordering(true);
+    setErrorMessage("");
+    try {
+      const checked = await reorderPlanItems(planId, itemsRef.current.map((item) => item.itemId));
+      setItems(checked.items);
+      itemsRef.current = checked.items;
+      setHasConflict(checked.hasConflict);
+    } catch (error) {
+      setItems(dragStartItemsRef.current);
+      itemsRef.current = dragStartItemsRef.current;
+      setErrorMessage(getApiErrorMessage(error, "순서를 변경하지 못했습니다."));
+    } finally {
+      setReordering(false);
+    }
+  };
 
-      <section className="flex w-full flex-col gap-2.5 rounded-[20px] bg-[#d9d9d9] px-5 pb-[22px] pt-[18px]">
-        <span aria-hidden className="text-xl text-[#838383]">
-          ⚠
-        </span>
-        <h2 className="text-[13px] font-bold">
-          순서 충돌 {order.conflictCount}건
-        </h2>
-        <div className="flex flex-col gap-1.5 text-xs font-medium leading-[18px] text-[#838383]">
-          <p>클라우드를 먼저 정리하면 가족 사진 및 파일을 인계 할 수 없어요.</p>
-          <p>클라우드 정리를 나중으로 실행하는걸 추천해요.</p>
-        </div>
-      </section>
+  const handleConfirm = async () => {
+    if (planId == null || hasConflict || pending) return;
+    setPending(true);
+    try { await confirmPlanOrder(planId); router.push("/plan"); }
+    catch (error) { setErrorMessage(getApiErrorMessage(error, "순서를 확정하지 못했습니다.")); setPending(false); }
+  };
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-base font-bold">실행 순서</h2>
-        <p className="text-[13px] font-medium text-[#838383]">
-          카드를 드래그해 순서를 변경할 수 있어요
-        </p>
-      </section>
+  const conflictingItems = items.filter((item) => item.conflict);
+  const latestConflictItem = [...conflictingItems]
+    .reverse()
+    .find((item) => item.conflictMessage?.trim()) ?? conflictingItems[conflictingItems.length - 1];
+  const latestConflictMessage = latestConflictItem?.conflictMessage
+    ?? (latestConflictItem ? `${latestConflictItem.title}의 순서를 확인해 주세요.` : "실행 순서를 확인해 주세요.");
 
-      <div className="flex w-full flex-col gap-[22px]">
-        {items.map((item, index) => {
-          const dragging = draggedId === item.id;
-          return (
-            <article
-              aria-label={`${index + 1}번 ${item.title}. 드래그하여 순서 변경`}
-              className={`flex w-full touch-none cursor-grab select-none flex-col gap-2 rounded-[20px] border-[1.4px] bg-white px-5 py-[18px] outline-none transition-[transform,opacity,box-shadow,border-color] duration-200 active:cursor-grabbing ${selectedId === item.id ? "border-[#838383] shadow-[0_0_0_2px_rgba(131,131,131,0.12)]" : "border-transparent"} ${dragging ? "scale-[0.98] opacity-60 shadow-lg" : "scale-100 opacity-100"}`}
-              data-order-id={item.id}
-              key={item.id}
-              onClick={() => setSelectedId(item.id)}
-              onFocus={() => setSelectedId(item.id)}
-              onPointerCancel={() => setDraggedId(null)}
-              onPointerDown={(event) => {
-                setDraggedId(item.id);
-                event.currentTarget.setPointerCapture(event.pointerId);
-              }}
-              onPointerMove={(event) => {
-                if (!draggedId) return;
-                const target = document
-                  .elementsFromPoint(event.clientX, event.clientY)
-                  .find(
-                    (element) =>
-                      element instanceof HTMLElement && element.dataset.orderId,
-                  );
-                if (target instanceof HTMLElement)
-                  moveItem(target.dataset.orderId);
-              }}
-              onPointerUp={(event) => {
-                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                  event.currentTarget.releasePointerCapture(event.pointerId);
-                }
-                setDraggedId(null);
-              }}
-              style={{ viewTransitionName: `order-${item.id}` }}
-              tabIndex={0}
-            >
-              <div className="flex items-center justify-between">
-                <strong className="text-[17px]">{index + 1}</strong>
-                <span className="text-xs font-medium text-[#838383]">
-                  {item.state}
-                </span>
-              </div>
-              <h3 className="text-sm font-bold">{item.title}</h3>
-              <div className="flex gap-2.5">
-                <Detail label="담당자" value={item.manager} />
-                <Detail label="대기 기간" value={item.waitingPeriod} />
-                <Detail label="승인 여부" value={item.approval} />
-              </div>
-            </article>
+  return <PageContainer className="gap-[22px] py-[70px]">
+    <PageHeader title="실행 순서 점검" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="pb-5" />
+    {hasConflict && <section className="rounded-[20px] bg-[#d9d9d9] px-5 py-[18px]" role="alert"><h2 className="font-bold">순서 충돌이 있습니다.</h2><p className="mt-2 text-sm text-[#838383]">{latestConflictMessage}</p></section>}
+    {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
+    <p className="text-sm text-[#838383]">카드를 드래그해 순서를 변경하면 서버에서 충돌 여부를 다시 확인합니다.</p>
+    <div className="flex w-full flex-col gap-[22px]">{items.map((item, index) => {
+      const dragging = draggedId === item.itemId;
+      return <article
+        aria-label={`${index + 1}번 ${item.title}. 드래그하여 순서 변경`}
+        className={`flex w-full touch-none cursor-grab select-none flex-col gap-2 rounded-[20px] border-[1.4px] bg-white px-5 py-[18px] outline-none transition-[transform,opacity,box-shadow,border-color] duration-200 active:cursor-grabbing ${selectedId === item.itemId ? "border-[#838383] shadow-[0_0_0_2px_rgba(131,131,131,0.12)]" : "border-transparent"} ${dragging ? "scale-[0.98] opacity-60 shadow-lg" : "scale-100 opacity-100"}`}
+        data-order-id={item.itemId}
+        key={item.itemId}
+        onClick={() => setSelectedId(item.itemId)}
+        onFocus={() => setSelectedId(item.itemId)}
+        onPointerCancel={() => {
+          setDraggedId(null);
+          dragChangedRef.current = false;
+          setItems(dragStartItemsRef.current);
+          itemsRef.current = dragStartItemsRef.current;
+        }}
+        onPointerDown={(event) => {
+          if (reordering) return;
+          dragStartItemsRef.current = itemsRef.current;
+          dragChangedRef.current = false;
+          setDraggedId(item.itemId);
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          if (draggedId == null) return;
+          const target = document.elementsFromPoint(event.clientX, event.clientY).find(
+            (element) => element instanceof HTMLElement && element.dataset.orderId,
           );
-        })}
-      </div>
-
-      <p className="w-full py-2.5 text-center text-[13px] font-medium text-[#838383]">
-        충돌 {order.conflictCount}건을 해결해야 확정 할 수 있어요
-      </p>
-      <Button disabled type="button">
-        순서 확정하기
-      </Button>
-    </PageContainer>
-  );
+          if (target instanceof HTMLElement) moveItem(Number(target.dataset.orderId));
+        }}
+        onPointerUp={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
+          setDraggedId(null);
+          void saveOrder();
+        }}
+        style={{ viewTransitionName: `order-${item.itemId}` }}
+        tabIndex={0}
+      >
+        <div className="flex items-center justify-between">
+          <strong className="text-[17px]">{index + 1}</strong>
+          <span className="text-xs font-medium text-[#838383]">{item.actionType}</span>
+        </div>
+        <h3 className="text-sm font-bold">{item.title}</h3>
+        <div className="flex gap-2.5">
+          <Detail label="담당자" value={item.recipientName ?? "미등록"} />
+          <Detail label="대기 기간" value={item.maxWaitHours == null ? "미설정" : `${item.maxWaitHours / 24}일`} />
+          <Detail label="승인 여부" value={item.acceptanceStatus ?? "미승인"} />
+        </div>
+      </article>;
+    })}</div>
+    {hasConflict && <p className="text-center text-sm text-[#838383]">충돌을 해결해야 확정할 수 있어요</p>}
+    <Button disabled={hasConflict || pending || reordering || items.length === 0} onClick={handleConfirm} type="button">{pending ? "확정 중..." : "순서 확정하기"}</Button>
+  </PageContainer>;
 }
