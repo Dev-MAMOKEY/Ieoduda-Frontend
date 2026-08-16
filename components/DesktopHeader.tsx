@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/api";
+import { LogoutButton } from "@/components/LogoutButton";
 
 const tabs = [
   {
@@ -82,14 +83,7 @@ export function DesktopHeader({
           </div>
         </div>
         {authenticated && (
-          <Link aria-label="로그아웃" className="size-6" href="/login">
-            <Image
-              alt=""
-              width={24}
-              height={24}
-              src="/icons/layout/header/sign-out.svg"
-            />
-          </Link>
+          <LogoutButton />
         )}
       </div>
     </header>
