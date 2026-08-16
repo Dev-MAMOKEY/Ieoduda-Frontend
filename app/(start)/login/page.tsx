@@ -6,10 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/Button";
-import { DesktopHeader } from "@/components/DesktopHeader";
 import { FormField } from "@/components/FormField";
 import { getApiErrorMessage, login } from "@/lib/api/auth";
-import { getConsent } from "@/lib/api/plan";
+import { getConsent, getMyPlan, getRoleChecks } from "@/lib/api/plan";
 import {
   hasFieldErrors,
   validateLogin,
@@ -71,7 +70,16 @@ export default function LoginPage() {
       await login(values);
       // 로그인 직후 동의 상태를 조회해 신규·기존 사용자 흐름을 나눕니다.
       const consent = await getConsent();
-      router.replace(consent.agreed ? "/plan" : "/service-info");
+      if (!consent.agreed) {
+        router.replace("/service-info");
+        return;
+      }
+
+      // 동의한 사용자는 지정 확인자 등록 여부에 따라 계획 시작 화면을 결정합니다.
+      const plan = await getMyPlan();
+      const roleChecks = await getRoleChecks(plan.planId);
+      const hasConfirmer = roleChecks.some((role) => role.type === "CONFIRMER");
+      router.replace(hasConfirmer ? "/plan" : "/plan-info");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "로그인에 실패했습니다."));
       setPending(false);
@@ -83,7 +91,6 @@ export default function LoginPage() {
       className="mx-auto flex min-h-dvh w-full max-w-[390px] items-center bg-[#f0f0f2] px-6 py-[70px] text-[#28292e] md:max-w-none md:flex-col md:p-0"
       data-node-id="439:1136"
     >
-      <DesktopHeader />
       <div className="hidden min-h-0 w-full flex-1 md:block" />
       <form
         className="flex w-full flex-col gap-5 md:w-[460px] md:gap-6"

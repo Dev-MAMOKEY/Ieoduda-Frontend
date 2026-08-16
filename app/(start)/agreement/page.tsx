@@ -7,10 +7,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { DesktopHeader } from "@/components/DesktopHeader";
 import { AuthGuard } from "@/components/AuthGuard";
 import { getApiErrorMessage } from "@/lib/api/auth";
-import { agreeToHandoff } from "@/lib/api/plan";
+import { agreeToHandoff, getMyPlan, getRoleChecks } from "@/lib/api/plan";
 
 const agreements = [
   "지정 확인자 2명의 신고가 필요합니다.",
@@ -32,7 +31,10 @@ export default function AgreementPage() {
     setErrorMessage("");
     try {
       await agreeToHandoff();
-      router.replace("/plan-info");
+      const plan = await getMyPlan();
+      const roleChecks = await getRoleChecks(plan.planId);
+      const hasConfirmer = roleChecks.some((role) => role.type === "CONFIRMER");
+      router.replace(hasConfirmer ? "/plan" : "/plan-info");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "동의 처리에 실패했습니다."));
       setPending(false);
@@ -45,7 +47,6 @@ export default function AgreementPage() {
         className="mx-auto flex min-h-dvh w-full max-w-[390px] items-center justify-center bg-[#f0f0f2] px-6 py-[70px] text-[#28292e] md:max-w-none md:flex-col md:p-0"
         data-node-id="439:1176"
       >
-      <DesktopHeader authenticated />
       <div className="flex w-full flex-1 items-center justify-center md:px-[140px] md:py-[50px]">
         <Card data-node-id="439:1177" variant="agreement">
           <h1 className="w-full text-center text-base font-bold leading-normal">
