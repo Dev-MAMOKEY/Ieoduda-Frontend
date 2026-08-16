@@ -22,7 +22,7 @@ const categoryLabels = {
 export default function PlanPage() {
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [areas, setAreas] = useState<LifeAreaResponse[]>([]);
-  const [conflictCount, setConflictCount] = useState(0);
+  const [conflictPlanCount, setConflictPlanCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function PlanPage() {
         if (!active) return;
         setPlan(nextPlan);
         setAreas(nextAreas);
-        setConflictCount(order.items.filter((item) => item.conflict).length);
+        setConflictPlanCount(order.items.filter((item) => item.conflict).length);
       })
       .catch((error) => active && setErrorMessage(getApiErrorMessage(error, "계획을 불러오지 못했습니다.")));
     return () => { active = false; };
@@ -64,8 +64,8 @@ export default function PlanPage() {
         <Button className="min-w-0 flex-1" href="/manager/edit">담당자 수정</Button>
       </div>
       <Link className="flex min-h-[60px] w-full items-center justify-between rounded-[20px] bg-[#d9d9d9] px-5 py-[18px]" href="/order">
-        <strong>미해결 충돌</strong>
-        <span className="flex items-center gap-1.5 text-sm text-[#838383]">{conflictCount}건 <ForwardCaret /></span>
+        <strong>충돌 계획 개수</strong>
+        <span className="flex items-center gap-1.5 text-sm text-[#838383]">{conflictPlanCount}개 <ForwardCaret /></span>
       </Link>
       {items.length === 0 && plan && <p className="py-10 text-sm text-[#838383]">아직 작성된 계획 항목이 없습니다.</p>}
       {items.map((item) => (
