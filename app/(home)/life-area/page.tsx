@@ -3,6 +3,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/Button";
 import { PageContainer } from "@/components/PageContainer";
@@ -135,6 +136,7 @@ function PlanItemCard({ item, displayOrder, busy, onApprove, onDelete, onSave }:
 }
 
 export default function LifeAreaPage() {
+  const router = useRouter();
   const [planId, setPlanId] = useState<number | null>(null);
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
@@ -244,6 +246,16 @@ export default function LifeAreaPage() {
     finally { setBusyItemId(null); }
   };
 
+  const handleRegisterRecipients = () => {
+    if (items.some((item) => item.status !== "APPROVED")) {
+      setErrorMessage("모든 계획을 승인해야 역할 담당자를 지정할 수 있습니다.");
+      return;
+    }
+
+    setErrorMessage("");
+    router.push("/manager");
+  };
+
   // type=QUESTION은 AI 말풍선으로, type=RESULT는 서버가 구조화한 계획 카드로 반영합니다.
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -293,7 +305,7 @@ export default function LifeAreaPage() {
         <div className={`max-w-[85%] rounded-[30px] px-[22px] py-[18px] text-sm leading-6 ${entry.role === "USER" ? "self-end bg-white" : "self-start bg-[#d5d5d5] font-semibold"}`}>{getMessageContent(entry)}</div>
         {entry.messageId === latestResultMessageId && items.length > 0 && <>
           <div className="grid w-full gap-[22px] lg:grid-cols-3">{items.map((item, index) => <PlanItemCard busy={busyItemId === item.itemId} displayOrder={index + 1} item={item} key={item.itemId} onApprove={() => handleApprove(item.itemId)} onDelete={() => handleDelete(item.itemId)} onSave={(request) => handleUpdate(item.itemId, request)} />)}</div>
-          <Button className="md:h-[52px]" href="/manager">역할 담당자 등록하기</Button>
+          <Button className="md:h-[52px]" onClick={handleRegisterRecipients} type="button">역할 담당자 등록하기</Button>
         </>}
       </section>;
     })}

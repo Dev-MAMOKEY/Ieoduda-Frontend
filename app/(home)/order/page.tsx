@@ -85,9 +85,16 @@ export default function OrderPage() {
     catch (error) { setErrorMessage(getApiErrorMessage(error, "순서를 확정하지 못했습니다.")); setPending(false); }
   };
 
+  const conflictingItems = items.filter((item) => item.conflict);
+  const latestConflictItem = [...conflictingItems]
+    .reverse()
+    .find((item) => item.conflictMessage?.trim()) ?? conflictingItems[conflictingItems.length - 1];
+  const latestConflictMessage = latestConflictItem?.conflictMessage
+    ?? (latestConflictItem ? `${latestConflictItem.title}의 순서를 확인해 주세요.` : "실행 순서를 확인해 주세요.");
+
   return <PageContainer className="gap-[22px] py-[70px]">
     <PageHeader title="실행 순서 점검" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="pb-5" />
-    {hasConflict && <section className="rounded-[20px] bg-[#d9d9d9] px-5 py-[18px]" role="alert"><h2 className="font-bold">순서 충돌이 있습니다.</h2><ul className="mt-2 text-sm text-[#838383]">{items.filter((item) => item.conflict).map((item) => <li key={item.itemId}>{item.conflictMessage ?? `${item.title}의 순서를 확인해 주세요.`}</li>)}</ul></section>}
+    {hasConflict && <section className="rounded-[20px] bg-[#d9d9d9] px-5 py-[18px]" role="alert"><h2 className="font-bold">순서 충돌이 있습니다.</h2><p className="mt-2 text-sm text-[#838383]">{latestConflictMessage}</p></section>}
     {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
     <p className="text-sm text-[#838383]">카드를 드래그해 순서를 변경하면 서버에서 충돌 여부를 다시 확인합니다.</p>
     <div className="flex w-full flex-col gap-[22px]">{items.map((item, index) => {
@@ -141,6 +148,7 @@ export default function OrderPage() {
         </div>
       </article>;
     })}</div>
+    {hasConflict && <p className="text-center text-sm text-[#838383]">충돌을 해결해야 확정할 수 있어요</p>}
     <Button disabled={hasConflict || pending || reordering || items.length === 0} onClick={handleConfirm} type="button">{pending ? "확정 중..." : "순서 확정하기"}</Button>
   </PageContainer>;
 }

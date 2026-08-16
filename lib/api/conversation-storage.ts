@@ -23,3 +23,14 @@ export function clearStoredConversationId(planId: number) {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(getConversationKey(planId));
 }
+
+export function clearAllStoredConversationIds() {
+  if (typeof window === "undefined") return;
+
+  const conversationKeys = Array.from(
+    { length: window.localStorage.length },
+    (_, index) => window.localStorage.key(index),
+  ).filter((key): key is string => key?.startsWith(CONVERSATION_KEY_PREFIX) === true);
+
+  conversationKeys.forEach((key) => window.localStorage.removeItem(key));
+}
