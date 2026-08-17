@@ -33,7 +33,7 @@ export function LogoutButton() {
       <Image
         alt=""
         height={24}
-        src="/icons/layout/header/sign-out.svg"
+        src="/icons/plan-home/figma/sign-out.svg"
         width={24}
       />
     </button>

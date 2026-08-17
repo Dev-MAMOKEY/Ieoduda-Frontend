@@ -11,6 +11,9 @@ import {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+// 토큰 발급이 다시 가능해지면 true로 변경해 401 로그인 이동을 활성화합니다.
+const AUTH_REDIRECT_ENABLED = false;
+
 if (!API_BASE_URL) {
   throw new Error("NEXT_PUBLIC_API_BASE_URL 환경변수가 설정되지 않았습니다.");
 }
@@ -95,7 +98,7 @@ apiClient.interceptors.response.use(
       // 재발급에 실패하면 로그인 정보를 제거하고 로그인 화면으로 이동합니다.
       clearTokens();
 
-      if (typeof window !== "undefined") {
+      if (AUTH_REDIRECT_ENABLED && typeof window !== "undefined") {
         window.location.replace("/login");
       }
 
