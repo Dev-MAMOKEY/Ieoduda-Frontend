@@ -11,6 +11,11 @@ export interface ConsentResponse {
   agreedAt: string | null;
 }
 
+export interface ConsentRequest {
+  serviceGuideAgreed: boolean;
+  handoffGuideAgreed: boolean;
+}
+
 export interface PlanResponse {
   planId: number;
   status: PlanStatus;

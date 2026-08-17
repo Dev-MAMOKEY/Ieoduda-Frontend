@@ -72,7 +72,7 @@ export default function LoginPage() {
       // 로그인 직후 동의 상태를 조회해 신규·기존 사용자 흐름을 나눕니다.
       const consent = await getConsent();
       if (!consent.agreed) {
-        router.replace("/service-info");
+        router.replace("/agreement");
         return;
       }
 

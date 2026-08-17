@@ -71,12 +71,12 @@ export function DesktopHeader({
       </div>
       <div className="flex items-center justify-end gap-[30px]">
         <div className="flex items-center gap-3.5">
-          <div className="size-[43px] rounded-full bg-[#d9d9d9]" />
-          <div className="flex flex-col gap-0.5">
-            <strong className="text-lg font-semibold">
+          <div className="size-[43px] rounded-full bg-[#f3f3ff]" />
+          <div className="flex flex-col gap-1">
+            <strong className="text-lg font-bold text-[#43306d]">
               {authenticated ? user.name : "비회원"}
             </strong>
-            <span className="text-sm text-[#a8a8a8]">
+            <span className="text-[15px] font-medium text-[#796b6c]">
               {authenticated ? user.email : "로그인해 주세요"}
             </span>
           </div>
