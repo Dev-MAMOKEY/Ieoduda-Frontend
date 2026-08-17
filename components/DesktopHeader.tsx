@@ -33,7 +33,7 @@ export function DesktopHeader({
   const user = getCurrentUser();
   return (
     <header className="hidden h-[125px] w-full shrink-0 grid-cols-3 items-center px-[50px] md:grid xl:px-[120px]">
-      <BrandLogo href="/plan" />
+      <BrandLogo />
       <div className="flex justify-center">
         {showNavigation && (
           <nav

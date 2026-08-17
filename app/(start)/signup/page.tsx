@@ -94,7 +94,7 @@ export default function SignupPage() {
       className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col bg-[#f0f0f2] text-[#28292e] md:max-w-none"
       data-node-id="439:1226"
     >
-      <LogoHeader href="/login" className="hidden md:flex" />
+      <LogoHeader className="hidden md:flex" />
       <div className="flex w-full flex-1 items-center justify-center px-6 py-[70px] md:px-[120px] md:pb-[80px] md:pt-[50px]">
         <form
           className="flex w-full flex-col gap-5 md:w-[460px] md:gap-6"
