@@ -19,9 +19,18 @@ body {
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: url("/images/background.png");
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: "SUITE", "Pretendard", "Noto Sans KR", Arial, sans-serif;
+}
+
+body :where(main, div.min-h-dvh, main > section.min-h-dvh) {
+  background-color: transparent !important;
 }
 
 button,

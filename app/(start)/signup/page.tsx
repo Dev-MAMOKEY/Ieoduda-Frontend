@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
+import { LogoHeader } from "@/components/LogoHeader";
 import { getApiErrorMessage, signup } from "@/lib/api/auth";
 import {
   hasFieldErrors,
@@ -90,15 +91,16 @@ export default function SignupPage() {
 
   return (
     <main
-      className="mx-auto flex min-h-dvh w-full max-w-[390px] items-center bg-[#f0f0f2] px-6 py-[70px] text-[#28292e] md:max-w-none md:flex-col md:p-0"
+      className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col bg-[#f0f0f2] text-[#28292e] md:max-w-none"
       data-node-id="439:1226"
     >
-      <div className="hidden min-h-0 w-full flex-1 md:block" />
-      <form
-        className="flex w-full flex-col gap-5 md:w-[460px] md:gap-6"
-        noValidate
-        onSubmit={handleSubmit}
-      >
+      <LogoHeader href="/login" className="hidden md:flex" />
+      <div className="flex w-full flex-1 items-center justify-center px-6 py-[70px] md:px-[120px] md:pb-[80px] md:pt-[50px]">
+        <form
+          className="flex w-full flex-col gap-5 md:w-[460px] md:gap-6"
+          noValidate
+          onSubmit={handleSubmit}
+        >
         <h1 className="text-[22px] font-bold leading-normal">회원가입</h1>
 
         {fields.map((field) => (
@@ -127,13 +129,13 @@ export default function SignupPage() {
         </Button>
 
         <p className="flex w-full items-center justify-center gap-2 text-sm whitespace-nowrap">
-          <span className="text-[#a8a8a8]">이미 계정이 있으신가요?</span>
-          <Link className="underline underline-offset-2" href="/login">
+          <span className="text-[#796b6c]">이미 계정이 있으신가요?</span>
+          <Link className="text-[#584e4d] underline underline-offset-2" href="/login">
             로그인하기
           </Link>
         </p>
-      </form>
-      <div className="hidden min-h-0 w-full flex-1 md:block" />
+        </form>
+      </div>
     </main>
   );
 }

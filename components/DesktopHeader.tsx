@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { BrandLogo } from "@/components/BrandLogo";
 import { getCurrentUser } from "@/lib/api";
 import { LogoutButton } from "@/components/LogoutButton";
 
@@ -31,10 +32,8 @@ export function DesktopHeader({
 }: { authenticated?: boolean; showNavigation?: boolean; activeTab?: string }) {
   const user = getCurrentUser();
   return (
-    <header className="hidden h-[125px] w-full shrink-0 grid-cols-3 items-center px-[50px] md:grid">
-      <Link className="w-fit p-2 text-[22px] font-semibold" href="/plan">
-        이어두다
-      </Link>
+    <header className="hidden h-[125px] w-full shrink-0 grid-cols-3 items-center px-[50px] md:grid xl:px-[120px]">
+      <BrandLogo href="/plan" />
       <div className="flex justify-center">
         {showNavigation && (
           <nav
