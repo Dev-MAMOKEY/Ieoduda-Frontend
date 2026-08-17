@@ -5,7 +5,7 @@ import { PageContainer } from "@/components/PageContainer";
 export default function PlanInfoPage() {
   return (
     <PageContainer
-      className="items-center justify-center gap-5 py-[70px]"
+      className="items-center justify-center gap-5 py-[70px] md:!pb-[125px] md:!pt-0"
       data-node-id="513:3341"
     >
       <Card data-node-id="513:3342" variant="notice">
