@@ -81,7 +81,7 @@ export default function ProfileSettingsPage() {
       data-node-id="439:4905"
     >
       <PageHeader title="설정" />
-      <div className="mx-auto flex w-full max-w-[342px] flex-col gap-5 pt-5 lg:max-w-[460px] lg:gap-10 lg:pt-[50px]">
+      <div className="mx-auto flex w-full max-w-[342px] flex-col items-center gap-5 pt-5 lg:max-w-[460px] lg:gap-10 lg:pt-[50px]">
         <UserProfileSummary />
         <div className="flex w-full flex-col gap-7 lg:gap-5">
         <Section

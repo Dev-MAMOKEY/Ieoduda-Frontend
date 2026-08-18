@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 const baseClassName =
-  "flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[#3c2b62] px-5 py-[14px] text-[16px] font-medium leading-none text-[#fbfafd] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d]";
+  "flex min-h-[44px] w-full items-center justify-center rounded-[14px] bg-[#3c2b62] px-5 py-[14px] text-sm font-medium leading-none text-[#fbfafd] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d] md:min-h-[48px] md:text-base";
 
 type ButtonProps = { children: ReactNode; href?: string; className?: string } & Record<string, unknown>;
 

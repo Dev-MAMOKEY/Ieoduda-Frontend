@@ -40,6 +40,14 @@ select {
   font: inherit;
 }
 
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 .role-preview :where(h1, h2, h3, p, span, strong, button, a) {
   line-height: normal;
 }
