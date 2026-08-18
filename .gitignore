@@ -44,3 +44,4 @@ next-env.d.ts
 # project documents
 /이슈 컨벤션.md
 /기능명세서/
+/라우팅 구조.md

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -50,9 +51,9 @@ function ConsentCard({ title, items, checked, onChange }: ConsentCardProps) {
             />
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute hidden text-[11px] font-bold leading-none text-[#43306d] peer-checked:block md:text-[13px]"
+              className="pointer-events-none absolute inset-0 hidden items-center justify-center peer-checked:flex"
             >
-              ✓
+              <Image alt="" className="size-3" height={12} src="/icons/agreement/check.svg" width={12} />
             </span>
           </span>
           <span>위 내용을 이해했으며 동의합니다.</span>

@@ -187,8 +187,8 @@ export const roleInspectionPeople = [
 ];
 
 export const handoffInspectionPeople = [
-  { name: "이지수", type: "담당자", ready: "준비 완료", role: "관계 정리", complete: true, checks: [["이메일", "도달 완료", true], ["수락", "수락 완료", true], ["대체 담당자", "없음", true]], question: "없음" },
-  { name: "김민수", type: "담당자", ready: "준비 대기", role: "업무 정리", complete: false, checks: [["이메일", "도달 완료", true], ["수락", "수락 대기", false], ["대체 담당자", "없음", false]], question: "말씀하신 디자인 프로젝트 저 혼자 인계받는 건가요?\n팀에 같이 넘겨야 할 사람이 있으면 미리 알아두고 싶어요." },
+  { name: "이지수", type: "담당자", ready: "준비 완료", role: "관계 정리", complete: true, checks: [["이메일", "도달 완료", true], ["역할", "수락 완료", true], ["대체 담당자", "없음", true]], question: "없음" },
+  { name: "김민수", type: "담당자", ready: "준비 대기", role: "업무 정리", complete: false, checks: [["이메일", "도달 완료", true], ["역할", "수락 대기", false], ["대체 담당자", "없음", false]], question: "말씀하신 디자인 프로젝트 저 혼자 인계받는 건가요?\n팀에 같이 넘겨야 할 사람이 있으면 미리 알아두고 싶어요." },
   { name: "유지민", type: "확인자", ready: "준비 대기", role: "관계 정리", complete: true, checks: [["이메일", "도달 완료", true], ["역할", "수락 완료", true]], question: "없음" },
   { name: "박성호", type: "확인자", ready: "준비 완료", role: "관계 정리", complete: true, checks: [["이메일", "도달 완료", true], ["역할", "수락 완료", true]], question: "없음" },
 ];

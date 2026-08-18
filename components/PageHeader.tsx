@@ -1,6 +1,7 @@
 import { BackButton } from "@/components/BackButton";
+import type { ReactNode } from "react";
 
-type PageHeaderProps = { title: string; backHref?: string; backLabel?: string; history?: boolean; className?: string };
+type PageHeaderProps = { title: ReactNode; backHref?: string; backLabel?: string; history?: boolean; className?: string };
 
 export function PageHeader({
   title,
