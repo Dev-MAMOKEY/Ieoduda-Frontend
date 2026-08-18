@@ -44,13 +44,13 @@ function RoleContent() {
             </div>
             <p className="text-sm font-medium text-[#796b6c] md:text-[15px]">{person.email}</p>
           </div>
-          <div className="flex flex-col gap-5">
-            <section className="flex flex-col gap-2.5">
+          <div className={verifier ? "flex flex-col gap-5" : "grid grid-cols-2 items-start pb-1.5"}>
+            <section className={`flex min-w-0 flex-col gap-2.5 ${verifier ? "" : "pr-[18px] md:pr-[30px]"}`}>
               <h3 className="text-sm font-bold text-[#43306d] md:text-base">{person.role}</h3>
               <p className="text-[13px] font-medium text-[#796b6c] md:text-[15px]">{person.summary}</p>
             </section>
             {!verifier && (
-              <section className="flex flex-col gap-2.5 border-l-[1.4px] border-[#e2dafa] pl-[22px] md:pl-[30px]">
+              <section className="flex shrink-0 flex-col justify-center gap-2.5 border-l-[1.4px] border-[#e2dafa] pl-[18px] md:pl-[30px]">
                 <h3 className="text-sm font-bold text-[#43306d] md:text-base">대기 기간</h3>
                 <p className="text-[13px] font-medium text-[#796b6c] md:text-[15px]">{person.waitingPeriod}</p>
               </section>
