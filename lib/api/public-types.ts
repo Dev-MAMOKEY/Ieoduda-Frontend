@@ -70,6 +70,8 @@ export interface EvidenceSubmitResponse {
   submittedAt: string;
 }
 
+export type EvidenceType = "DEATH_CERTIFICATE" | "DEATH_REPORT" | "POSTMORTEM_REPORT";
+
 export interface PosthumousAccessResponse {
   recipientName: string;
   authorName: string;
@@ -81,6 +83,9 @@ export interface PosthumousAccessResponse {
 }
 
 export interface OtpVerifyResponse { accessSessionId: string; sessionExpiresAt: string }
+export interface OtpSendResponse { maskedEmail: string; otpExpiresAt: string; resendAvailableAt: string }
+export interface ObjectionResponse { objectionId: string; status: string; raisedAt: string }
+export interface PackageIssueResponse { issueId: string; actionId: string; status: string }
 export interface PackageActionResponse {
   actionId: string;
   action: string;

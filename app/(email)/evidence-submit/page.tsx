@@ -7,11 +7,12 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
 import { PageHeader } from "@/components/PageHeader";
 import { submitEvidence } from "@/lib/api/public";
+import type { EvidenceType } from "@/lib/api/public-types";
 
 const evidenceTypes = [
-  { mobile: "사망 진단서", desktop: "사망 진단서" },
-  { mobile: "사망 신고서", desktop: "사망 신고 접수증" },
-  { mobile: "검안서", desktop: "검안서" },
+  { mobile: "사망 진단서", desktop: "사망 진단서", value: "DEATH_CERTIFICATE" as EvidenceType },
+  { mobile: "사망 신고서", desktop: "사망 신고 접수증", value: "DEATH_REPORT" as EvidenceType },
+  { mobile: "검안서", desktop: "검안서", value: "POSTMORTEM_REPORT" as EvidenceType },
 ];
 
 export default function EvidenceSubmitPage() {
@@ -20,11 +21,18 @@ export default function EvidenceSubmitPage() {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [dragging, setDragging] = useState(false);
+  const [evidenceType, setEvidenceType] = useState<EvidenceType>("DEATH_CERTIFICATE");
   const selectFiles = (selectedFiles: File[]) => {
     const acceptedTypes = ["application/pdf", "image/jpeg", "image/png"];
-    const validFiles = selectedFiles.filter((file) => acceptedTypes.includes(file.type) && file.size <= 25 * 1024 * 1024);
+    const validFiles = selectedFiles.filter((file) => acceptedTypes.includes(file.type) && file.size <= 50 * 1024 * 1024);
+    const totalSize = validFiles.reduce((total, file) => total + file.size, 0);
+    if (totalSize > 55 * 1024 * 1024) {
+      setFiles([]);
+      setMessage("전체 파일 크기는 최대 55MB까지 제출할 수 있습니다.");
+      return;
+    }
     setFiles(validFiles.slice(0, 3));
-    if (validFiles.length !== selectedFiles.length) setMessage("PDF, JPG, PNG 형식의 25MB 이하 파일만 선택할 수 있습니다.");
+    if (validFiles.length !== selectedFiles.length) setMessage("PDF, JPG, PNG 형식의 50MB 이하 파일만 선택할 수 있습니다.");
     else if (selectedFiles.length > 3) setMessage("파일은 최대 3개까지 선택할 수 있습니다.");
     else setMessage("");
   };
@@ -36,11 +44,13 @@ export default function EvidenceSubmitPage() {
   const submit = async () => {
     const searchParams = new URLSearchParams(window.location.search);
     const caseId = searchParams.get("caseId") ?? "";
+    const token = searchParams.get("token") ?? "";
     if (!caseId) return setMessage("유효한 공개 절차 정보가 필요합니다.");
+    if (!token) return setMessage("유효한 증빙 제출 토큰이 필요합니다.");
     setPending(true);
     setMessage("");
     try {
-      await submitEvidence(caseId, files);
+      await Promise.all(files.map((file) => submitEvidence(caseId, token, evidenceType, file)));
       setMessage("증빙 자료가 제출되었습니다.");
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : "증빙 자료를 제출하지 못했습니다.");
@@ -68,10 +78,10 @@ export default function EvidenceSubmitPage() {
             </div>
             <div className="flex gap-2.5">
               {evidenceTypes.map((type) => (
-                <span className="flex items-center justify-center whitespace-nowrap rounded-[14px] bg-[#fbfafd] px-4 py-2.5 text-[13px] font-medium leading-none lg:rounded-[30px] lg:px-5 lg:py-3 lg:text-[15px]" key={type.mobile}>
+                <button aria-pressed={evidenceType === type.value} className="flex items-center justify-center whitespace-nowrap rounded-[14px] bg-[#fbfafd] px-4 py-2.5 text-[13px] font-medium leading-none lg:rounded-[30px] lg:px-5 lg:py-3 lg:text-[15px]" key={type.mobile} onClick={() => setEvidenceType(type.value)} type="button">
                   <span className="lg:hidden">{type.mobile}</span>
                   <span className="hidden lg:inline">{type.desktop}</span>
-                </span>
+                </button>
               ))}
             </div>
           </section>
@@ -86,7 +96,7 @@ export default function EvidenceSubmitPage() {
             >
               <Image alt="" className="size-6 lg:size-[26px]" height={26} src="/icons/email/folder-plus.svg" width={26} />
               <strong className="text-sm leading-none lg:text-base">파일을 끌어다 놓거나 눌러서 선택</strong>
-              <span className="text-xs font-medium leading-none text-[#584e4d] lg:text-sm">PDF･JPG･PNG･최대 25MB･최대 3개</span>
+              <span className="text-xs font-medium leading-none text-[#584e4d] lg:text-sm">PDF･JPG･PNG･파일당 최대 50MB･최대 3개</span>
               <input accept=".pdf,.jpg,.jpeg,.png" className="sr-only" multiple onChange={(event) => selectFiles(Array.from(event.target.files ?? []))} type="file" />
             </label>
 

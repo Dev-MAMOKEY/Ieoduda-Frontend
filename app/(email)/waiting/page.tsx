@@ -3,10 +3,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
-import { cancelReleaseCase, getWaitingStatus } from "@/lib/api/public";
+import { cancelReleaseCase, createObjection, getWaitingStatus } from "@/lib/api/public";
 import type { ReleaseStatusResponse } from "@/lib/api/public-types";
 
 function ActionButton({ children, disabled, onClick, secondary = false }: { children: string; disabled?: boolean; onClick?: () => void; secondary?: boolean }) {
@@ -62,7 +61,6 @@ function NoticeCard({
 }
 
 export default function WaitingPage() {
-  const router = useRouter();
   const [status, setStatus] = useState<ReleaseStatusResponse | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -74,13 +72,28 @@ export default function WaitingPage() {
   }, []);
   const cancel = async () => {
     const caseId = query().get("caseId");
-    if (!caseId) return;
+    const token = query().get("token");
+    if (!caseId || !token) return setError("유효한 취소 링크 정보가 필요합니다.");
     setPending(true);
-    try { setStatus(await cancelReleaseCase(caseId)); } catch (reason) { setError(reason instanceof Error ? reason.message : "절차를 취소하지 못했습니다."); } finally { setPending(false); }
+    try { setStatus(await cancelReleaseCase(caseId, token)); } catch (reason) { setError(reason instanceof Error ? reason.message : "절차를 취소하지 못했습니다."); } finally { setPending(false); }
   };
-  const appeal = () => {
+  const appeal = async () => {
     const params = query();
-    router.push("/appeal?caseId=" + encodeURIComponent(params.get("caseId") ?? "") + "&token=" + encodeURIComponent(params.get("token") ?? ""));
+    const caseId = params.get("caseId") ?? "";
+    const token = params.get("token") ?? "";
+    if (!caseId || !token) return setError("유효한 이의 제기 링크 정보가 필요합니다.");
+    const objectionReason = window.prompt("이의 제기 사유를 입력해 주세요.")?.trim() ?? "";
+    if (!objectionReason) return;
+    setPending(true);
+    setError("");
+    try {
+      await createObjection(caseId, token, objectionReason);
+      setStatus(await getWaitingStatus(caseId));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "이의 제기를 접수하지 못했습니다.");
+    } finally {
+      setPending(false);
+    }
   };
   return (
     <main className="min-h-dvh text-[#43306d]">
@@ -115,7 +128,7 @@ export default function WaitingPage() {
             <p>멈추면 아무것도 실행되지 않고 계획은 다시 대기 상태로 돌아가요.</p>
           </NoticeCard>
 
-          <NoticeCard appeal disabled={!status?.hasActiveCase} onClick={appeal} title="무언가 잘못됐다면?">
+          <NoticeCard appeal disabled={pending || !status?.hasActiveCase} onClick={() => void appeal()} title="무언가 잘못됐다면?">
             <p>이의 제기 연락처는 사유와 증빙을 제출할 수 있어요.</p>
             <p>이의가 접수되면 계획은 확인될 때까지 자동으로 멈춰요.</p>
           </NoticeCard>
