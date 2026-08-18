@@ -1,10 +1,15 @@
 // 단계별 대체 담당자 화면
+"use client";
+
 import Image from "next/image";
 import { BrandLogo } from "@/components/BrandLogo";
 import { PageHeader } from "@/components/PageHeader";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { completePackageAction, reportPackageIssue } from "@/lib/api/public";
 
-function ActionButton({ children, secondary = false }: { children: string; secondary?: boolean }) {
-  return <button className={`flex min-h-11 w-full items-center justify-center rounded-[14px] px-5 py-3.5 text-sm font-medium leading-normal text-[#fbfafd] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d] lg:min-h-12 lg:text-base ${secondary ? "bg-[#7f62b8] hover:bg-[#7055a4]" : "bg-[#43306d] hover:bg-[#332452] lg:bg-[#3c2b62]"}`} type="button">{children}</button>;
+function ActionButton({ children, disabled, onClick, secondary = false }: { children: string; disabled?: boolean; onClick: () => void; secondary?: boolean }) {
+  return <button className={`flex min-h-11 w-full items-center justify-center rounded-[14px] px-5 py-3.5 text-sm font-medium leading-normal text-[#fbfafd] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d] disabled:opacity-50 lg:min-h-12 lg:text-base ${secondary ? "bg-[#7f62b8] hover:bg-[#7055a4]" : "bg-[#43306d] hover:bg-[#332452] lg:bg-[#3c2b62]"}`} disabled={disabled} onClick={onClick} type="button">{children}</button>;
 }
 
 function PersonCard({ backup = false }: { backup?: boolean }) {
@@ -13,7 +18,7 @@ function PersonCard({ backup = false }: { backup?: boolean }) {
       <div className="flex flex-col gap-3 lg:gap-2">
         <div className="flex flex-col gap-1.5">
           <h2 className="text-sm font-bold leading-none lg:text-base">{backup ? "대체 담당자" : "관계 정리 담당자"}</h2>
-          <strong className="text-sm font-semibold leading-none text-[#584e4d] lg:text-[17px]">{backup ? "나신한" : "이지수"}</strong>
+          <strong className="text-sm font-semibold leading-none text-[#584e4d] lg:text-[17px]">{backup ? "대체 담당자" : "현재 담당자"}</strong>
         </div>
         <p className="text-xs font-medium leading-none text-[#796b6c] lg:text-sm">{backup ? "아직 연락하지 않았어요" : "이메일은 정상적으로 전달 되었어요"}</p>
       </div>
@@ -28,6 +33,12 @@ function PersonCard({ backup = false }: { backup?: boolean }) {
 }
 
 export default function BackupPage() {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+  const query = () => new URLSearchParams(window.location.search);
+  const finish = async () => { const params = query(); const sessionId = params.get("accessSessionId"); const actionId = params.get("actionId"); if (!sessionId || !actionId) return setMessage("유효한 단계 정보가 필요합니다."); setPending(true); try { await completePackageAction(sessionId, actionId); router.push("/package?accessSessionId=" + encodeURIComponent(sessionId)); } catch (reason) { setMessage(reason instanceof Error ? reason.message : "단계를 완료하지 못했습니다."); } finally { setPending(false); } };
+  const report = async () => { const params = query(); const sessionId = params.get("accessSessionId"); const actionId = params.get("actionId"); if (!sessionId || !actionId) return setMessage("유효한 단계 정보가 필요합니다."); const reason = window.prompt("문제가 발생한 이유를 입력해 주세요.") ?? ""; if (!reason) return; setPending(true); try { await reportPackageIssue(sessionId, actionId, reason); setMessage("문제가 신고되었습니다."); } catch (failure) { setMessage(failure instanceof Error ? failure.message : "문제를 신고하지 못했습니다."); } finally { setPending(false); } };
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] items-center px-[120px] lg:flex"><BrandLogo /></header>
 
@@ -54,8 +65,9 @@ export default function BackupPage() {
           <PersonCard />
 
           <div className="flex flex-col gap-3.5 pb-3.5 lg:gap-5 lg:py-5">
-            <ActionButton>완료하기</ActionButton>
-            <ActionButton secondary>문제 신고하기</ActionButton>
+            <ActionButton disabled={pending} onClick={() => void finish()}>완료하기</ActionButton>
+            <ActionButton disabled={pending} onClick={() => void report()} secondary>문제 신고하기</ActionButton>
+            {message ? <p className="text-center text-sm text-[#584e4d]">{message}</p> : null}
           </div>
         </section>
 

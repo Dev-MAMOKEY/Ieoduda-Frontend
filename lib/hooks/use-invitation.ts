@@ -1,0 +1,74 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  decideConfirmerInvitation,
+  decideRecipientInvitation,
+  getConfirmerInvitation,
+  getRecipientInvitation,
+} from "@/lib/api/public";
+import type { ConfirmerInviteResponse, RecipientInviteResponse } from "@/lib/api/public-types";
+
+function getToken() {
+  return typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("token") ?? "";
+}
+
+export function useRecipientInvitation() {
+  const [invitation, setInvitation] = useState<RecipientInviteResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      queueMicrotask(() => { setError("유효한 초대 토큰이 필요합니다."); setLoading(false); });
+      return;
+    }
+    getRecipientInvitation(token).then(setInvitation).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "초대를 불러오지 못했습니다.")).finally(() => setLoading(false));
+  }, []);
+  const decide = async (decision: "accept" | "decline", inquiry = "") => {
+    const token = getToken();
+    if (!token || pending) return;
+    setPending(true);
+    setError("");
+    try {
+      await decideRecipientInvitation(token, decision, inquiry);
+      setInvitation((current) => current ? { ...current, acceptanceStatus: decision === "accept" ? "ACCEPTED" : "DECLINED" } : current);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "응답을 처리하지 못했습니다.");
+    } finally {
+      setPending(false);
+    }
+  };
+  return { invitation, loading, pending, error, decide };
+}
+
+export function useConfirmerInvitation() {
+  const [invitation, setInvitation] = useState<ConfirmerInviteResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      queueMicrotask(() => { setError("유효한 초대 토큰이 필요합니다."); setLoading(false); });
+      return;
+    }
+    getConfirmerInvitation(token).then(setInvitation).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "초대를 불러오지 못했습니다.")).finally(() => setLoading(false));
+  }, []);
+  const decide = async (decision: "accept" | "decline", inquiry = "") => {
+    const token = getToken();
+    if (!token || pending) return;
+    setPending(true);
+    setError("");
+    try {
+      await decideConfirmerInvitation(token, decision, inquiry);
+      setInvitation((current) => current ? { ...current, acceptanceStatus: decision === "accept" ? "ACCEPTED" : "DECLINED" } : current);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "응답을 처리하지 못했습니다.");
+    } finally {
+      setPending(false);
+    }
+  };
+  return { invitation, loading, pending, error, decide };
+}

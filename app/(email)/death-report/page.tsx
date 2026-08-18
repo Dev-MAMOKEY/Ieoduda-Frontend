@@ -1,7 +1,13 @@
 // 사망 신고 이메일 화면
+"use client";
+
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
+import { reportDeath } from "@/lib/api/public";
+import { useConfirmerInvitation } from "@/lib/hooks/use-invitation";
 
 const dateFields = [
   { label: "년도", type: "number", min: 1900, max: 9999 },
@@ -10,6 +16,31 @@ const dateFields = [
 ] as const;
 
 export default function DeathReportPage() {
+  const router = useRouter();
+  const { invitation } = useConfirmerInvitation();
+  const [date, setDate] = useState(["", "", ""]);
+  const [unknownDate, setUnknownDate] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const ownerName = invitation?.ownerName ?? "계획 작성자";
+  const submit = async () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const token = searchParams.get("token") ?? "";
+    if (!token) return setError("유효한 신고 토큰이 필요합니다.");
+    setPending(true);
+    setError("");
+    try {
+      const deathDate = unknownDate || date.some((part) => !part) ? undefined : date[0] + "-" + date[1].padStart(2, "0") + "-" + date[2].padStart(2, "0");
+      await reportDeath(token, deathDate);
+      const params = new URLSearchParams();
+      params.set("token", token);
+      const caseId = searchParams.get("caseId");
+      if (caseId) params.set("caseId", caseId);
+      router.push("/evidence-submit?" + params.toString());
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "신고를 처리하지 못했습니다.");
+    } finally { setPending(false); }
+  };
   return (
     <main className="min-h-dvh text-[#43306d]">
       <header className="hidden h-[125px] items-center px-[120px] lg:flex">
@@ -25,23 +56,23 @@ export default function DeathReportPage() {
           <div className="flex flex-col gap-[22px] lg:gap-9">
             <article className="flex w-full flex-col items-center gap-6 overflow-hidden rounded-[18px] bg-[#fbfafd] px-5 py-9 text-center lg:gap-7 lg:rounded-[30px] lg:pb-[34px] lg:pt-9">
               <header className="flex flex-col items-center gap-3 lg:gap-3.5">
-                <p className="text-sm font-bold leading-none text-[#584e4d] lg:text-base lg:text-[#796b6c]">유지민님에게</p>
+                <p className="text-sm font-bold leading-none text-[#584e4d] lg:text-base lg:text-[#796b6c]">{invitation?.confirmerName ?? "확인자"}님에게</p>
                 <Image alt="" className="size-6 lg:size-[26px]" height={26} src="/icons/email/envelope-open.svg" width={26} />
                 <div className="flex flex-col items-center gap-1.5 text-lg font-bold leading-none lg:flex-row lg:gap-1.5 lg:text-xl">
-                  <p>김나무님에 대한</p>
+                  <p>{ownerName}님에 대한</p>
                   <p>확인이 필요해요</p>
                 </div>
               </header>
 
               <p className="text-[13px] font-medium leading-none lg:text-[15px] lg:text-[#584e4d]">
-                김나무님이 생전에 당신을 확인자로 지정하셨어요.
+                {ownerName}님이 생전에 당신을 확인자로 지정하셨어요.
               </p>
 
               <div className="flex w-full flex-col items-center gap-3.5">
                 <p className="text-[13px] font-medium leading-none text-[#584e4d] lg:text-[15px]">아래에 쓰여진 정보를 확인해 주세요.</p>
                 <div className="flex w-full flex-col items-center justify-center gap-1.5 rounded-[14px] bg-[#f3f3ff] px-5 py-[18px] lg:w-auto lg:flex-row lg:gap-3 lg:rounded-[20px] lg:bg-[#eeecee] lg:px-10 lg:py-[22px]">
-                  <strong className="text-base leading-none">김나무</strong>
-                  <span className="text-[13px] font-medium leading-none text-[#584e4d] lg:text-[15px]">namu_k@gmail.com</span>
+                  <strong className="text-base leading-none">{ownerName}</strong>
+                  <span className="text-[13px] font-medium leading-none text-[#584e4d] lg:text-[15px]">{invitation?.contactEmail ?? "연락처 확인 중"}</span>
                 </div>
               </div>
 
@@ -59,15 +90,18 @@ export default function DeathReportPage() {
               </div>
 
               <div className="flex gap-2.5 lg:flex-col lg:gap-4">
-                {dateFields.map((field) => (
+                {dateFields.map((field, index) => (
                   <input
                     aria-label={field.label}
                     className="min-h-11 min-w-0 flex-1 rounded-[14px] border-0 bg-[#fbfafd] px-3 py-3.5 text-center text-[13px] font-medium leading-none text-[#584e4d] outline-none placeholder:text-[#796b6c] focus-visible:ring-2 focus-visible:ring-[#43306d]/25 lg:min-h-[48px] lg:w-full lg:flex-none lg:rounded-[20px] lg:px-5 lg:py-4"
                     key={field.label}
                     max={field.max}
                     min={field.min}
+                    disabled={unknownDate}
+                    onChange={(event) => setDate((current) => current.map((value, itemIndex) => itemIndex === index ? event.target.value : value))}
                     placeholder={field.label}
                     type={field.type}
+                    value={date[index]}
                   />
                 ))}
               </div>
@@ -76,6 +110,8 @@ export default function DeathReportPage() {
                 <span className="relative flex size-4 shrink-0 items-center justify-center lg:size-[18px]">
                   <input
                     className="peer size-full cursor-pointer appearance-none rounded-full border border-[#584e4d] bg-transparent checked:border-[#43306d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d]"
+                    checked={unknownDate}
+                    onChange={(event) => setUnknownDate(event.target.checked)}
                     type="checkbox"
                   />
                   <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden items-center justify-center peer-checked:flex">
@@ -98,7 +134,8 @@ export default function DeathReportPage() {
           </div>
 
           <div className="py-3 lg:py-0">
-            <Button href="/evidence-submit">사망 사실 신고하기</Button>
+            <Button disabled={pending} onClick={() => void submit()} type="button">{pending ? "처리 중..." : "사망 사실 신고하기"}</Button>
+            {error ? <p className="mt-3 text-center text-sm text-red-600">{error}</p> : null}
           </div>
         </div>
       </section>

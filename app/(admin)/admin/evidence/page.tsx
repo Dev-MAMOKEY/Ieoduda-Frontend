@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminAuditTabs } from "@/components/AdminAuditTabs";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
-import { getEvidenceAuditRecords } from "@/lib/api";
+import { getEvidenceAuditRecords, retryEvidenceDeletion } from "@/lib/api";
 
-type EvidenceRecord = ReturnType<typeof getEvidenceAuditRecords>[number];
+type EvidenceRecord = Awaited<ReturnType<typeof getEvidenceAuditRecords>>[number];
 const stages = ["검토 완료", "삭제 예정", "실제 삭제"];
 
 function Timeline({ dates }: { dates: string[] }) {
@@ -58,7 +58,31 @@ function EvidenceCard({ record }: { record: EvidenceRecord }) {
 }
 
 export default function EvidencePage() {
-  const records = getEvidenceAuditRecords();
+  const [records, setRecords] = useState<EvidenceRecord[]>([]);
+  const [evidenceIds, setEvidenceIds] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
+  const load = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) {
+      setErrorMessage("URL에 evidenceId 또는 evidenceIds가 필요합니다.");
+      return;
+    }
+    try {
+      setRecords(await getEvidenceAuditRecords(ids));
+      setErrorMessage("");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "증빙 삭제 감사를 불러오지 못했습니다.");
+    }
+  }, []);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ids = (params.get("evidenceIds") ?? params.get("evidenceId") ?? "").split(",").filter(Boolean);
+    queueMicrotask(() => setEvidenceIds(ids));
+    queueMicrotask(() => void load(ids));
+  }, [load]);
+  const retryFailed = async () => {
+    await Promise.all(records.filter((record) => record.failed).map((record) => retryEvidenceDeletion(record.evidenceId)));
+    await load(evidenceIds);
+  };
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] grid-cols-3 items-center px-[120px] lg:grid">
       <BrandLogo />
@@ -72,9 +96,10 @@ export default function EvidencePage() {
       <AdminAuditTabs active="evidence" />
       <h1 className="mt-2.5 hidden text-xl font-bold leading-none lg:block">증빙 삭제 감사</h1>
       <div className="mt-7 flex w-full flex-col gap-7 lg:mt-[50px] lg:w-[460px] lg:gap-[22px]">
+        {errorMessage && <p className="text-center text-sm text-red-700" role="alert">{errorMessage}</p>}
         {records.map((record) => <EvidenceCard key={record.title} record={record} />)}
         <p className="py-2.5 text-center text-xs leading-none text-[#796b6c] lg:py-3.5 lg:text-sm">삭제된 원본은 어떤 형태로도 미리보기 및 복원되지 않아요</p>
-        <Button type="button">재처리 요청하기</Button>
+        <Button disabled={!records.some((record) => record.failed)} onClick={retryFailed} type="button">재처리 요청하기</Button>
       </div>
     </section>
   </main>;

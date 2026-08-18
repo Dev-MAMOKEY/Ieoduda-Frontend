@@ -1,11 +1,14 @@
+ "use client";
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { InspectionNavigation } from "@/components/InspectionNavigation";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { getHandoffInspectionPeople } from "@/lib/api";
 
-type HandoffPerson = ReturnType<typeof getHandoffInspectionPeople>[number];
+type HandoffPerson = Awaited<ReturnType<typeof getHandoffInspectionPeople>>[number];
 type StatusItem = HandoffPerson["checks"][number];
 
 function StatusBox({ item, wide }: { item: StatusItem; wide: boolean }) {
@@ -43,8 +46,8 @@ function HandoffCard({ person }: { person: HandoffPerson }) {
   );
 }
 
-function HandoffGroup({ type }: { type: "담당자" | "확인자" }) {
-  const members = getHandoffInspectionPeople().filter((person) => person.type === type);
+function HandoffGroup({ people, type }: { people: HandoffPerson[]; type: "담당자" | "확인자" }) {
+  const members = people.filter((person) => person.type === type);
   return (
     <section className="flex flex-col gap-[22px] lg:gap-6">
       <div className="flex justify-between">
@@ -59,6 +62,13 @@ function HandoffGroup({ type }: { type: "담당자" | "확인자" }) {
 }
 
 export default function HandoffInspectionPage() {
+  const [people, setPeople] = useState<HandoffPerson[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
+  useEffect(() => {
+    getHandoffInspectionPeople()
+      .then(setPeople)
+      .catch((error: unknown) => setErrorMessage(error instanceof Error ? error.message : "인계 점검 정보를 불러오지 못했습니다."));
+  }, []);
   return (
     <PageContainer className="role-preview gap-0 pb-[100px] pt-[70px] lg:min-h-[calc(100dvh-125px)] lg:max-w-none lg:px-[120px] lg:pb-20 lg:pt-0">
       <PageHeader
@@ -68,8 +78,10 @@ export default function HandoffInspectionPage() {
       <div className="mx-auto flex w-full flex-col gap-3 pt-[16px] lg:max-w-[460px] lg:gap-10 lg:pt-[30px]">
         <InspectionNavigation active="handoff" />
         <div className="flex flex-col gap-[26px] lg:gap-[60px]">
-          <HandoffGroup type="담당자" />
-          <HandoffGroup type="확인자" />
+          {errorMessage && <p className="text-center text-sm text-red-700" role="alert">{errorMessage}</p>}
+          {!errorMessage && people.length === 0 && <p className="text-center text-sm text-[#796b6c]">인계 점검 정보를 불러오는 중입니다.</p>}
+          <HandoffGroup people={people} type="담당자" />
+          <HandoffGroup people={people} type="확인자" />
         </div>
       </div>
       <BottomTabBar activeTab="inspection" />

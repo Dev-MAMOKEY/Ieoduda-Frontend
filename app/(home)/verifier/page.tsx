@@ -141,7 +141,7 @@ export default function VerifierPage() {
 
   return (
     <PageContainer className="gap-3 pb-8 pt-[70px] md:!px-[120px] md:!pb-[50px] md:!pt-0" data-node-id="454:2817">
-      <header className="grid w-full grid-cols-[24px_1fr_24px] items-center px-1 py-2 md:grid-cols-[28px_1fr_28px] md:px-0 md:py-0">
+      <header className="mx-auto grid w-full max-w-[342px] grid-cols-[24px_1fr_24px] items-center px-1 py-2 md:max-w-[460px] md:grid-cols-[28px_1fr_28px] md:px-0 md:py-0">
         <BackButton href="/plan-info" label="계획 작성 안내로 돌아가기" />
         <h1 className="text-center text-lg font-bold leading-none text-[#43306d] md:text-xl">지정 확인자 등록</h1>
         <span aria-hidden className="size-6 md:size-7" />

@@ -1,19 +1,25 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/Button";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
+import { getMyPlan, getReleaseSettings } from "@/lib/api/plan";
+import type { ReleaseSettingsResponse } from "@/lib/api/plan-types";
 
-const details = [
-  { section: "본인 경고", items: [["이메일", "namu_k@gmail.com"]] },
-  {
-    section: "부고 전달",
-    items: [
-      ["이름", "홍길동"],
-      ["이메일", "hong_k@naver.com"],
-      ["대기 기간", "14일"],
-    ],
-  },
-];
 export default function AppealEditPage() {
+  const [settings, setSettings] = useState<ReleaseSettingsResponse | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    getMyPlan()
+      .then((plan) => getReleaseSettings(plan.planId))
+      .then(setSettings)
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "대기 이의제기 정보를 불러오지 못했습니다."));
+  }, []);
+  const details = useMemo(() => [
+    { section: "본인 경고", items: [["이메일", settings?.selfWarningEmail ?? "미등록"]] },
+    { section: "부고 전달", items: [["이름", settings?.disputeContact?.name ?? "미등록"], ["이메일", settings?.disputeContact?.email ?? "미등록"], ["대기 기간", settings ? settings.waitingDays + "일" : "확인 중"]] },
+  ], [settings]);
   return (
     <PageContainer
       className="gap-0 pb-9 pt-[70px] md:min-h-[calc(100dvh-125px)] md:max-w-none md:px-[120px] md:pb-20 md:pt-0"
@@ -40,6 +46,7 @@ export default function AppealEditPage() {
               ))}
             </section>
           ))}
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
         </article>
         <Button href="/appeal">
           수정하기

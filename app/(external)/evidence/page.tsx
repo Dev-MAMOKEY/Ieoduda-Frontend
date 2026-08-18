@@ -1,5 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { getPartnerReviews } from "@/lib/api/partner";
+import type { PartnerReviewListItem } from "@/lib/api/partner-types";
 
 type EvidenceItem = {
   id: string;
@@ -15,24 +20,11 @@ type EvidenceGroup = {
   items: EvidenceItem[];
 };
 
-const groups: EvidenceGroup[] = [
-  {
-    name: "김나무",
-    verifiedCount: 2,
-    items: [
-      { id: "death-certificate-kim", submittedAt: "26.05.11 PM 11:50", title: "사망 진단서", submitter: "유지민 제출", verified: true },
-      { id: "medical-examination-kim", submittedAt: "26.05.11 AM 12:30", title: "검안서", submitter: "박성호 제출", verified: true },
-    ],
-  },
-  {
-    name: "이신한",
-    verifiedCount: 1,
-    items: [
-      { id: "death-report-lee", submittedAt: "26.12.01 AM 14:00", title: "사망 신고서", submitter: "김하나 제출", verified: true },
-      { id: "death-certificate-lee", submittedAt: "26.12.03 PM 09:55", title: "사망 진단서", submitter: "이재현 제출", verified: false },
-    ],
-  },
-];
+const evidenceTitle = { DEATH_CERTIFICATE: "사망 진단서", DEATH_REPORT: "사망 신고서", POSTMORTEM_REPORT: "검안서" } as const;
+
+function toEvidenceItem(review: PartnerReviewListItem): EvidenceItem {
+  return { id: review.reviewId, submittedAt: new Date(review.submittedAt).toLocaleString("ko-KR"), title: evidenceTitle[review.evidenceType], submitter: review.confirmerName + " 제출", verified: review.reviewStatus === "APPROVED" };
+}
 
 function StatusBadge({ verified }: { verified: boolean }) {
   return <span className={`flex min-h-[28px] shrink-0 items-center justify-center rounded-[20px] px-2.5 py-1.5 text-xs font-semibold text-[#796b6c] ${verified ? "bg-[#e2dafa]" : "bg-[#eeecee]"}`}>
@@ -66,6 +58,16 @@ function EvidenceSection({ group, second = false }: { group: EvidenceGroup; seco
 }
 
 export default function EvidencePage() {
+  const [reviews, setReviews] = useState<PartnerReviewListItem[]>([]);
+  const [error, setError] = useState("");
+  useEffect(() => { getPartnerReviews().then(setReviews).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "증빙 자료를 불러오지 못했습니다.")); }, []);
+  const groups = useMemo<EvidenceGroup[]>(() => Object.values(reviews.reduce<Record<string, EvidenceGroup>>((result, review) => {
+    const group = result[review.targetName] ?? { name: review.targetName, verifiedCount: 0, items: [] };
+    group.items.push(toEvidenceItem(review));
+    if (review.reviewStatus === "APPROVED") group.verifiedCount += 1;
+    result[review.targetName] = group;
+    return result;
+  }, {})), [reviews]);
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] items-center px-[120px] lg:flex">
       <BrandLogo />
@@ -79,6 +81,8 @@ export default function EvidencePage() {
 
       <div className="flex w-full flex-col gap-4 lg:mt-[50px] lg:w-[460px] lg:gap-10">
         {groups.map((group, index) => <EvidenceSection group={group} key={group.name} second={index > 0} />)}
+        {!error && groups.length === 0 ? <p className="py-10 text-center text-sm text-[#796b6c]">등록된 증빙 자료가 없습니다.</p> : null}
+        {error ? <p className="py-10 text-center text-sm text-red-600">{error}</p> : null}
       </div>
     </section>
   </main>;

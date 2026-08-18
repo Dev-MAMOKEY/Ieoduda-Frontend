@@ -19,7 +19,7 @@ import {
   getRoleChecks,
   registerRecipients,
 } from "@/lib/api/plan";
-import type { PlanItem, RecipientDetailResponse } from "@/lib/api/plan-types";
+import type { ApiId, PlanItem, RecipientDetailResponse } from "@/lib/api/plan-types";
 
 type ExistingAssignment = RecipientDetailResponse & { backupName: string | null };
 
@@ -28,11 +28,11 @@ const numberIcons = ["one", "two", "three"];
 
 export default function ManagerPage() {
   const router = useRouter();
-  const [planId, setPlanId] = useState<number | null>(null);
+  const [planId, setPlanId] = useState<ApiId | null>(null);
   const [items, setItems] = useState<PlanItem[]>([]);
-  const [backups, setBackups] = useState<Set<number>>(new Set());
-  const [waitingPeriods, setWaitingPeriods] = useState<Record<number, number | null>>({});
-  const [existingAssignments, setExistingAssignments] = useState<Record<number, ExistingAssignment>>({});
+  const [backups, setBackups] = useState<Set<ApiId>>(new Set());
+  const [waitingPeriods, setWaitingPeriods] = useState<Record<string, number | null>>({});
+  const [existingAssignments, setExistingAssignments] = useState<Record<string, ExistingAssignment>>({});
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -49,9 +49,9 @@ export default function ManagerPage() {
         .filter((role) => role.type === "RECIPIENT")
         .map((role) => getRecipientDetail(plan.planId, role.id)));
       const backupNames = new Map(handoffChecks.assignees.map((assignee) => [assignee.assigneeId, assignee.backupName]));
-      const assignments: Record<number, ExistingAssignment> = {};
-      const periods: Record<number, number | null> = {};
-      const backupItemIds = new Set<number>();
+      const assignments: Record<string, ExistingAssignment> = {};
+      const periods: Record<string, number | null> = {};
+      const backupItemIds = new Set<ApiId>();
       details.forEach((detail) => detail.items.forEach((item) => {
         const backupName = backupNames.get(detail.assigneeId) ?? null;
         assignments[item.itemId] = { ...detail, backupName };
@@ -65,13 +65,13 @@ export default function ManagerPage() {
     }).catch((error) => setErrorMessage(getApiErrorMessage(error, "계획 항목을 불러오지 못했습니다.")));
   }, []);
 
-  const toggleBackup = (itemId: number) => setBackups((current) => {
+  const toggleBackup = (itemId: ApiId) => setBackups((current) => {
     const next = new Set(current);
     if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
     return next;
   });
 
-  const changeWaitingPeriod = (itemId: number, value: string) => {
+  const changeWaitingPeriod = (itemId: ApiId, value: string) => {
     const days = value === "" ? null : Number(value);
     setWaitingPeriods((current) => ({
       ...current,
@@ -97,7 +97,7 @@ export default function ManagerPage() {
   };
 
   return <PageContainer className="gap-3 pb-10 pt-[70px] md:!px-[120px] md:!pt-0">
-    <PageHeader title="역할 담당자 등록" backHref="/life-area" backLabel="계획 작성으로 돌아가기" className="items-center px-1 py-2 md:px-0 md:py-0" />
+    <PageHeader title="역할 담당자 등록" backHref="/life-area" backLabel="계획 작성으로 돌아가기" className="mx-auto max-w-[342px] items-center px-1 py-2 md:max-w-[460px] md:px-0 md:py-0" />
     <form className="mx-auto flex w-full max-w-[342px] flex-col gap-5 pt-3 md:max-w-[460px] md:pt-[38px]" onSubmit={handleSubmit}>
       {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
       {items.map((item, index) => {
@@ -117,7 +117,7 @@ export default function ManagerPage() {
             <Image alt="" height={20} src="/icons/manager-user-plus.svg" width={20} />
             {backups.has(item.itemId) ? "대체 담당자 제거하기" : "대체 담당자 등록하기"}
           </OutlineButton>
-          {backups.has(item.itemId) && <div className="flex flex-col gap-3 pt-1"><FormField id={`${item.itemId}-backup-name`} name={`${item.itemId}-backup-name`} label="대체 담당자 이름" placeholder="이름을 입력해 주세요" type="text" autoComplete="name" defaultValue={existing?.backupName ?? ""} readOnly={Boolean(existing)} /><FormField id={`${item.itemId}-backup-email`} name={`${item.itemId}-backup-email`} label="대체 담당자 이메일" placeholder="이메일을 입력해 주세요" type="email" autoComplete="email" readOnly={Boolean(existing)} /></div>}
+          {backups.has(item.itemId) && <div className="flex w-full flex-col gap-[18px] rounded-[20px] border border-[#b9a6d8] px-4 pb-5 pt-4"><h3 className="px-2 text-sm font-bold text-[#838383]">대체 담당자</h3><FormField id={`${item.itemId}-backup-name`} name={`${item.itemId}-backup-name`} label="대체 담당자 이름" placeholder="이름을 입력해 주세요" type="text" autoComplete="name" defaultValue={existing?.backupName ?? ""} readOnly={Boolean(existing)} /><FormField id={`${item.itemId}-backup-email`} name={`${item.itemId}-backup-email`} label="대체 담당자 이메일" placeholder="이메일을 입력해 주세요" type="email" autoComplete="email" readOnly={Boolean(existing)} /></div>}
         </fieldset>;
       })}
       {items.length === 0 && <p className="text-sm text-[#838383]">담당자를 연결할 계획 항목이 없습니다.</p>}

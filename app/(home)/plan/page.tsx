@@ -5,19 +5,21 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { DesktopHeader } from "@/components/DesktopHeader";
-import { getCurrentUser } from "@/lib/api";
 import { getMyPlan, getOrderCheck } from "@/lib/api/plan";
+import type { LifeAreaCategory, PlanSummaryResponse } from "@/lib/api/plan-types";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 const cards = [
-  { title: "전달 메시지", description: "가족･친구･지인에게", status: "작성완료", icon: "/icons/plan-home/figma/message.svg", href: "/life-area" },
-  { title: "관계 정리", description: "SNS 계정･부고 전달", status: "작성완료", icon: "/icons/plan-home/figma/relationship.svg", href: "/life-area" },
-  { title: "업무 처리", description: "디자인 프로젝트 인수인계", status: "작성완료", icon: "/icons/plan-home/figma/work.svg", href: "/life-area" },
-  { title: "확인자", description: "유지민･박성호", status: "등록완료", icon: "/icons/plan-home/figma/verifier.svg", href: "/verifier" },
+  { title: "전달 메시지", category: "FAMILY" as LifeAreaCategory, icon: "/icons/plan-home/figma/message.svg", href: "/life-area?from=plan" },
+  { title: "관계 정리", category: "RELATIONSHIP_CLEANUP" as LifeAreaCategory, icon: "/icons/plan-home/figma/relationship.svg", href: "/life-area?from=plan" },
+  { title: "업무 처리", category: "WORK_CONTINUITY" as LifeAreaCategory, icon: "/icons/plan-home/figma/work.svg", href: "/life-area?from=plan" },
+  { title: "확인자", category: null, icon: "/icons/plan-home/figma/verifier.svg", href: null },
 ];
 
 export default function PlanPage() {
-  const user = getCurrentUser();
+  const { user } = useCurrentUser();
   const [conflictCount, setConflictCount] = useState(0);
+  const [planSummary, setPlanSummary] = useState<PlanSummaryResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -26,6 +28,7 @@ export default function PlanPage() {
     setErrorMessage("");
     try {
       const plan = await getMyPlan();
+      setPlanSummary(plan);
       const order = await getOrderCheck(plan.planId);
       setConflictCount(order.items.filter((item) => item.conflict).length);
     } catch {
@@ -39,6 +42,13 @@ export default function PlanPage() {
     const timer = window.setTimeout(() => void loadConflictCount(), 0);
     return () => window.clearTimeout(timer);
   }, [loadConflictCount]);
+
+  const unwrittenLifeAreas = planSummary
+    ? cards
+      .filter((card) => card.category != null)
+      .filter((card) => !planSummary.lifeAreas.find((area) => area.category === card.category)?.isWritten)
+      .map((card) => planSummary.lifeAreas.find((area) => area.category === card.category)?.label ?? card.title)
+    : [];
 
   return (
     <main className="relative min-h-dvh w-full overflow-hidden text-[#28292e] md:!max-w-none md:!p-0">
@@ -58,7 +68,7 @@ export default function PlanPage() {
           <h1 className="text-[18px] font-bold leading-none text-[#43306d] md:text-[20px]">홈</h1>
         </header>
         <div className="relative flex flex-1 flex-col items-center gap-3 pb-[46px] pt-10 text-[#43306d] md:gap-4 md:pb-[72px] md:pt-[70px]">
-          <p className="text-[20px] font-bold leading-none text-[#3c2b62] md:text-[22px]">{user.name}님, 반가워요</p>
+          <p className="text-[20px] font-bold leading-none text-[#3c2b62] md:text-[22px]">{user?.name ?? "사용자"}님, 반가워요</p>
           <div className="flex flex-col items-center gap-[3px] text-[14px] leading-none md:gap-[6px] md:text-[18px]">
             <p className="font-semibold md:font-bold">지금은 계획 대기 중이예요</p>
             <p className="font-bold">평상시엔 아무 일도 일어나지 않아요</p>
@@ -80,12 +90,34 @@ export default function PlanPage() {
         </div>
 
         <div className="flex flex-col gap-5 md:gap-6">
-          {cards.map((card) => (
-            <Link key={card.title} href={card.href} className="flex items-center justify-between rounded-[16px] bg-[#fbfafd] px-4 py-5 md:px-5 md:py-[22px]">
-              <span className="flex items-center gap-3 md:gap-[14px]"><span className="flex size-10 items-center justify-center rounded-[20px] bg-[#f3f3ff] md:size-[46px]"><Image src={card.icon} alt="" width={26} height={26} className="size-6 md:size-[26px]" /></span><span className="flex flex-col gap-[6px]"><strong className="text-[14px] leading-none text-[#43306d] md:text-[16px]">{card.title}</strong><span className="text-[13px] font-medium leading-none text-[#584e4d] md:text-[15px]">{card.description}</span></span></span>
-              <span className="text-[12px] font-semibold leading-none text-[#796b6c] md:text-[14px]">{card.status}</span>
+          {unwrittenLifeAreas.length > 0 && (
+            <Link className="flex w-full items-center justify-between rounded-[16px] bg-[#f3f3ff] px-4 py-[18px] md:px-5 md:py-5" href="/life-area?from=plan">
+              <span className="flex min-w-0 items-center gap-3 md:gap-[14px]">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#e2dafa] md:size-[46px]">
+                  <Image src="/icons/plan-home/figma/warning.svg" alt="" width={24} height={24} className="size-[22px] md:size-6" />
+                </span>
+                <span className="flex min-w-0 flex-col gap-[7px]">
+                  <strong className="text-[14px] leading-none text-[#3c2b62] md:text-[16px]">작성 필요한 계획이 있어요</strong>
+                  <span className="truncate text-[13px] font-medium leading-none text-[#584e4d] md:text-[15px]">{unwrittenLifeAreas.join(" · ")}</span>
+                </span>
+              </span>
+              <Image src="/icons/common/caret-right.svg" alt="" width={18} height={18} className="ml-3 size-[18px] shrink-0" />
             </Link>
-          ))}
+          )}
+          {cards.map((card) => {
+            const lifeArea = card.category
+              ? planSummary?.lifeAreas.find((area) => area.category === card.category)
+              : null;
+            const content = <>
+              <span className="flex min-w-0 items-center gap-3 md:gap-[14px]"><span className="flex size-10 shrink-0 items-center justify-center rounded-[20px] bg-[#f3f3ff] md:size-[46px]"><Image src={card.icon} alt="" width={26} height={26} className="size-6 md:size-[26px]" /></span><span className="flex min-w-0 flex-col gap-[6px]"><strong className="truncate text-[14px] leading-none text-[#43306d] md:text-[16px]">{lifeArea?.label ?? card.title}</strong><span className="truncate text-[13px] font-medium leading-none text-[#584e4d] md:text-[15px]">{card.category ? lifeArea?.summary ?? "작성 내용을 확인해 주세요" : planSummary?.confirmerNames.join("･") || "등록된 확인자 없음"}</span></span></span>
+              <span className="ml-4 shrink-0 whitespace-nowrap text-[12px] font-semibold leading-none text-[#796b6c] md:ml-5 md:text-[14px]">{card.category ? lifeArea?.isWritten ? "작성완료" : "작성필요" : planSummary?.confirmerTotalCount ? "등록완료" : "등록필요"}</span>
+            </>;
+            const className = "flex items-center justify-between rounded-[16px] bg-[#fbfafd] px-4 py-5 md:px-5 md:py-[22px]";
+
+            return card.href
+              ? <Link key={card.title} href={card.href} className={className}>{content}</Link>
+              : <div key={card.title} className={className}>{content}</div>;
+          })}
         </div>
       </section>
       <BottomTabBar activeTab="home" />

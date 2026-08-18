@@ -1,10 +1,15 @@
 // 사후 인계 대기 기간 및 이의 제기 화면
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { cancelReleaseCase, getWaitingStatus } from "@/lib/api/public";
+import type { ReleaseStatusResponse } from "@/lib/api/public-types";
 
-function ActionButton({ children, secondary = false }: { children: string; secondary?: boolean }) {
+function ActionButton({ children, disabled, onClick, secondary = false }: { children: string; disabled?: boolean; onClick?: () => void; secondary?: boolean }) {
   const colorClass = secondary
     ? "bg-[#7f62b8] hover:bg-[#7055a4]"
     : "bg-[#43306d] hover:bg-[#332452] lg:bg-[#3c2b62]";
@@ -12,6 +17,8 @@ function ActionButton({ children, secondary = false }: { children: string; secon
   return (
     <button
       className={"flex min-h-11 w-full items-center justify-center rounded-[14px] px-5 py-3.5 text-sm font-medium leading-none text-[#fbfafd] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d] lg:min-h-12 lg:text-base " + colorClass}
+      disabled={disabled}
+      onClick={onClick}
       type="button"
     >
       {children}
@@ -22,10 +29,14 @@ function ActionButton({ children, secondary = false }: { children: string; secon
 function NoticeCard({
   appeal = false,
   children,
+  disabled,
+  onClick,
   title,
 }: {
   appeal?: boolean;
   children: ReactNode;
+  disabled?: boolean;
+  onClick?: () => void;
   title: string;
 }) {
   return (
@@ -39,7 +50,7 @@ function NoticeCard({
       </div>
 
       <div className={appeal ? "flex flex-col gap-3" : "flex flex-col"}>
-        <ActionButton secondary={appeal}>{appeal ? "이의 제기하기" : "본인 확인 후 취소하기"}</ActionButton>
+        <ActionButton disabled={disabled} onClick={onClick} secondary={appeal}>{appeal ? "이의 제기하기" : "본인 확인 후 취소하기"}</ActionButton>
         {appeal && (
           <p className="text-center text-xs leading-none text-[#796b6c]">
             사유 및 증빙 자료 제출을 해야 이의 제기가 가능해요
@@ -51,6 +62,26 @@ function NoticeCard({
 }
 
 export default function WaitingPage() {
+  const router = useRouter();
+  const [status, setStatus] = useState<ReleaseStatusResponse | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const query = () => new URLSearchParams(window.location.search);
+  useEffect(() => {
+    const caseId = query().get("caseId");
+    if (!caseId) { queueMicrotask(() => setError("유효한 공개 절차 정보가 필요합니다.")); return; }
+    getWaitingStatus(caseId).then(setStatus).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "대기 정보를 불러오지 못했습니다."));
+  }, []);
+  const cancel = async () => {
+    const caseId = query().get("caseId");
+    if (!caseId) return;
+    setPending(true);
+    try { setStatus(await cancelReleaseCase(caseId)); } catch (reason) { setError(reason instanceof Error ? reason.message : "절차를 취소하지 못했습니다."); } finally { setPending(false); }
+  };
+  const appeal = () => {
+    const params = query();
+    router.push("/appeal?caseId=" + encodeURIComponent(params.get("caseId") ?? "") + "&token=" + encodeURIComponent(params.get("token") ?? ""));
+  };
   return (
     <main className="min-h-dvh text-[#43306d]">
       <header className="hidden h-[125px] items-center px-[120px] lg:flex">
@@ -64,30 +95,31 @@ export default function WaitingPage() {
 
         <div className="flex w-full flex-col items-center gap-[22px] lg:mt-[50px] lg:w-[460px] lg:gap-10">
           <div className="flex flex-col items-center gap-1.5 text-lg font-bold leading-none lg:flex-row lg:text-xl">
-            <p>김나무님의 계획이</p>
+            <p>등록된 계획이</p>
             <p>실행 대기 중이에요</p>
           </div>
 
           <section className="flex w-full flex-col items-center gap-3 rounded-[20px] bg-[#fbfafd] px-5 py-[22px] lg:py-6">
             <div className="flex flex-col items-center gap-2 lg:gap-2.5">
               <p className="text-xs font-semibold leading-none text-[#796b6c] lg:text-sm">예정 발송일</p>
-              <strong className="text-lg leading-none lg:text-xl">2026년 11월 21일</strong>
+              <strong className="text-lg leading-none lg:text-xl">{status?.waitingEndsAt ? new Date(status.waitingEndsAt).toLocaleDateString("ko-KR") : "확인 중"}</strong>
             </div>
             <div className="flex flex-col items-center gap-2 lg:gap-2.5">
-              <strong className="text-base leading-none lg:text-lg">남은 기간 7일</strong>
+              <strong className="text-base leading-none lg:text-lg">남은 기간 {status?.remainingDays ?? "-"}일</strong>
               <p className="text-xs font-medium leading-none text-[#796b6c] lg:text-sm">그 전까지는 언제든 취소가 가능해요</p>
             </div>
           </section>
 
-          <NoticeCard title="실행을 멈추시고 싶으신가요?">
+          <NoticeCard disabled={pending || !status?.hasActiveCase} onClick={() => void cancel()} title="실행을 멈추시고 싶으신가요?">
             <p>본인이라면 전체 절차를 즉시 취소할 수 있어요.</p>
             <p>멈추면 아무것도 실행되지 않고 계획은 다시 대기 상태로 돌아가요.</p>
           </NoticeCard>
 
-          <NoticeCard appeal title="무언가 잘못됐다면?">
+          <NoticeCard appeal disabled={!status?.hasActiveCase} onClick={appeal} title="무언가 잘못됐다면?">
             <p>이의 제기 연락처는 사유와 증빙을 제출할 수 있어요.</p>
             <p>이의가 접수되면 계획은 확인될 때까지 자동으로 멈춰요.</p>
           </NoticeCard>
+          {error ? <p className="text-center text-sm text-red-600">{error}</p> : null}
         </div>
 
         <footer className="mt-[22px] flex flex-col items-center gap-9 text-center text-xs leading-none text-[#796b6c] lg:mt-10 lg:gap-3 lg:text-sm">

@@ -1,10 +1,20 @@
 "use client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { Button } from "@/components/Button";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
+import { getApiErrorMessage } from "@/lib/api/auth";
+import {
+  getMyPlan,
+  getReleaseSettings,
+  registerDisputeContact,
+  registerSelfWarningEmail,
+  updateDisputeContact,
+  updateReleasePolicy,
+} from "@/lib/api/plan";
+import type { ApiId } from "@/lib/api/plan-types";
 
 const inputClass =
   "min-h-[48px] w-full rounded-[14px] border bg-white px-4 py-[14px] text-[13px] font-medium leading-none text-[#584e4d] outline-none placeholder:text-[#a99d9e] focus-visible:ring-2 focus-visible:ring-[#43306d]/25 md:px-5 md:py-4 md:text-[15px]";
@@ -35,12 +45,31 @@ export default function AppealPage() {
   const router = useRouter();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [selfVerified, setSelfVerified] = useState(false);
+  const [selfEmail, setSelfEmail] = useState("");
+  const [planId, setPlanId] = useState<ApiId | null>(null);
+  const [contactId, setContactId] = useState<ApiId | null>(null);
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState("");
+  const [submissionPending, setSubmissionPending] = useState(false);
+  const [submissionMessage, setSubmissionMessage] = useState("");
+
+  useEffect(() => {
+    getMyPlan()
+      .then(async (plan) => {
+        setPlanId(plan.planId);
+        const settings = await getReleaseSettings(plan.planId);
+        setSelfEmail(settings.selfWarningEmail ?? "");
+        setSelfVerified(settings.selfWarningEmailVerified);
+        setContactId(settings.disputeContact?.contactId ?? null);
+      })
+      .catch(() => { /* 신규 등록 화면은 기존 설정 조회 실패와 관계없이 입력할 수 있습니다. */ });
+  }, []);
 
   const clearError = (name: FieldName) => {
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
   };
 
-  const handleVerifyEmail = (event: MouseEvent<HTMLButtonElement>) => {
+  const handleVerifyEmail = async (event: MouseEvent<HTMLButtonElement>) => {
     const form = event.currentTarget.form;
     const email = String(new FormData(form ?? undefined).get("selfEmail") ?? "").trim();
     if (!email) {
@@ -54,10 +83,26 @@ export default function AppealPage() {
       return;
     }
     clearError("selfEmail");
-    setSelfVerified(true);
+    setVerificationPending(true);
+    setVerificationMessage("");
+    try {
+      const currentPlanId = planId ?? (await getMyPlan()).planId;
+      setPlanId(currentPlanId);
+      const result = await registerSelfWarningEmail(currentPlanId, email);
+      setSelfEmail(result.email);
+      setSelfVerified(result.verified);
+      setVerificationMessage(result.emailSent
+        ? "검증 메일을 보냈어요. 이메일의 링크를 눌러 검증을 완료해 주세요."
+        : "이메일을 등록했지만 검증 메일 발송 여부를 확인하지 못했어요.");
+    } catch (error) {
+      setSelfVerified(false);
+      setVerificationMessage(getApiErrorMessage(error, "검증 메일을 보내지 못했습니다."));
+    } finally {
+      setVerificationPending(false);
+    }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const selfEmail = String(data.get("selfEmail") ?? "").trim();
@@ -69,7 +114,7 @@ export default function AppealPage() {
 
     if (!selfEmail) errors.selfEmail = "본인 이메일을 입력해 주세요.";
     else if (!emailPattern.test(selfEmail)) errors.selfEmail = "올바른 이메일 형식으로 입력해 주세요.";
-    else if (!selfVerified) errors.selfEmail = "먼저 검증 메일을 보내 주세요.";
+    else if (!selfVerified) errors.selfEmail = "이메일로 보낸 검증 링크를 눌러 검증을 완료해 주세요.";
     if (!contactName) errors.contactName = "이의 제기 연락처의 이름을 입력해 주세요.";
     if (!contactEmail) errors.contactEmail = "이의 제기 연락처의 이메일을 입력해 주세요.";
     else if (!emailPattern.test(contactEmail)) errors.contactEmail = "올바른 이메일 형식으로 입력해 주세요.";
@@ -79,7 +124,24 @@ export default function AppealPage() {
     }
 
     setFieldErrors(errors);
-    if (Object.keys(errors).length === 0) router.push("/appeal/edit");
+    if (Object.keys(errors).length > 0) return;
+
+    setSubmissionPending(true);
+    setSubmissionMessage("");
+    try {
+      const currentPlanId = planId ?? (await getMyPlan()).planId;
+      setPlanId(currentPlanId);
+      await Promise.all([
+        contactId == null
+          ? registerDisputeContact(currentPlanId, contactName, contactEmail)
+          : updateDisputeContact(currentPlanId, contactId, contactName, contactEmail),
+        updateReleasePolicy(currentPlanId, waitingPeriod),
+      ]);
+      router.push("/appeal/edit");
+    } catch (error) {
+      setSubmissionMessage(getApiErrorMessage(error, "대기 이의제기 정보를 저장하지 못했습니다."));
+      setSubmissionPending(false);
+    }
   };
 
   return (
@@ -90,10 +152,9 @@ export default function AppealPage() {
       <PageHeader
         backHref="/profile"
         backLabel="설정 화면으로 돌아가기"
-        className="md:hidden"
+        className="mx-auto max-w-[342px] md:max-w-[460px]"
         title="대기 이의제기"
       />
-      <PageHeader className="hidden md:flex" title="대기 이의제기" />
       <div className="mx-auto flex w-full max-w-[342px] flex-col gap-5 pt-5 md:max-w-[460px] md:gap-10 md:pt-[50px]">
         <form className="contents" noValidate onSubmit={handleSubmit}>
         <section className="flex flex-col gap-6 md:gap-[22px] md:pb-[22px]">
@@ -103,12 +164,13 @@ export default function AppealPage() {
               <span className="text-sm font-bold text-[#796b6c] md:text-base">{selfVerified ? "검증 완료" : "검증 필요"}</span>
             </div>
             <div className="flex flex-col gap-2">
-              <input aria-invalid={Boolean(fieldErrors.selfEmail)} className={`${inputClass} ${fieldErrors.selfEmail ? "border-red-500" : "border-transparent"}`} name="selfEmail" onChange={() => { clearError("selfEmail"); setSelfVerified(false); }} placeholder="이메일을 입력해 주세요" type="email" />
+              <input aria-invalid={Boolean(fieldErrors.selfEmail)} className={`${inputClass} ${fieldErrors.selfEmail ? "border-red-500" : "border-transparent"}`} name="selfEmail" onChange={(event) => { setSelfEmail(event.target.value); clearError("selfEmail"); setSelfVerified(false); setVerificationMessage(""); }} placeholder="이메일을 입력해 주세요" type="email" value={selfEmail} />
               {fieldErrors.selfEmail && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.selfEmail}</p>}
+              {verificationMessage && <p className="px-2.5 text-xs font-medium text-[#796b6c]" role="status">{verificationMessage}</p>}
             </div>
           </div>
-          <Button className="cursor-pointer text-sm hover:!bg-[#37275a] md:text-base" onClick={handleVerifyEmail} type="button">
-            검증 메일 보내기
+          <Button className="cursor-pointer text-sm hover:!bg-[#37275a] md:text-base" disabled={verificationPending} onClick={handleVerifyEmail} type="button">
+            {verificationPending ? "검증 메일 보내는 중..." : "검증 메일 보내기"}
           </Button>
         </section>
         <section className="flex flex-col gap-6 pb-3 md:gap-6 md:pb-[14px]">
@@ -116,7 +178,7 @@ export default function AppealPage() {
             <div className="flex flex-col gap-3.5 md:gap-[22px]">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-[#43306d] md:text-lg">이의 제기 연락처</h2>
-                <span className="text-sm font-bold text-[#796b6c] md:text-base">검증 필요</span>
+                <span className="text-sm font-bold text-[#796b6c] md:text-base">검증 요망</span>
               </div>
               <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactName)} className={`${inputClass} ${fieldErrors.contactName ? "border-red-500" : "border-transparent"}`} name="contactName" onChange={() => clearError("contactName")} placeholder="이름을 입력해 주세요" />{fieldErrors.contactName && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactName}</p>}</div>
               <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactEmail)} className={`${inputClass} ${fieldErrors.contactEmail ? "border-red-500" : "border-transparent"}`} name="contactEmail" onChange={() => clearError("contactEmail")} placeholder="이메일을 입력해 주세요" type="email" />{fieldErrors.contactEmail && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactEmail}</p>}</div>
@@ -127,9 +189,9 @@ export default function AppealPage() {
             </div>
           </div>
         </section>
-        <Button className="cursor-pointer text-sm hover:!bg-[#37275a] md:bg-[#7f62b8] md:text-base md:hover:!bg-[#765aaa]" type="submit">
-          <span className="md:hidden">대기 이의제기 보내기</span>
-          <span className="hidden md:inline">대기 이의제기 등록하기</span>
+        {submissionMessage && <p className="text-center text-sm text-red-700" role="alert">{submissionMessage}</p>}
+        <Button className="cursor-pointer !bg-[#7f62b8] text-sm hover:!bg-[#765aaa] md:text-base" disabled={submissionPending || verificationPending} type="submit">
+          {submissionPending ? "등록 중..." : "대기 이의제기 등록하기"}
         </Button>
         </form>
         <div className="flex flex-col gap-[22px]">

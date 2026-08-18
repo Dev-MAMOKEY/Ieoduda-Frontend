@@ -10,7 +10,7 @@ import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage } from "@/lib/api/auth";
 import { confirmPlanOrder, getMyPlan, getOrderCheck, reorderPlanItems } from "@/lib/api/plan";
-import type { OrderCheckItem } from "@/lib/api/plan-types";
+import type { ApiId, OrderCheckItem } from "@/lib/api/plan-types";
 
 // 실행 순서 카드 하단의 담당자·대기 기간·승인 상태를 기존 디자인으로 표시합니다.
 function Detail({ label, value }: { label: string; value: string }) {
@@ -36,11 +36,11 @@ function getAcceptanceLabel(status: OrderCheckItem["acceptanceStatus"]) {
 
 export default function OrderPage() {
   const router = useRouter();
-  const [planId, setPlanId] = useState<number | null>(null);
+  const [planId, setPlanId] = useState<ApiId | null>(null);
   const [items, setItems] = useState<OrderCheckItem[]>([]);
   const [hasConflict, setHasConflict] = useState(false);
-  const [draggedId, setDraggedId] = useState<number | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [draggedId, setDraggedId] = useState<ApiId | null>(null);
+  const [selectedId, setSelectedId] = useState<ApiId | null>(null);
   const [pending, setPending] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -60,11 +60,11 @@ export default function OrderPage() {
   }, []);
 
   // 드래그 중에는 화면 순서만 변경하고 서버 요청은 보내지 않습니다.
-  const moveItem = (targetId: number) => {
-    if (draggedId == null || draggedId === targetId) return;
+  const moveItem = (targetId: string) => {
+    if (draggedId == null || String(draggedId) === targetId) return;
     const next = [...itemsRef.current];
-    const from = next.findIndex((item) => item.itemId === draggedId);
-    const to = next.findIndex((item) => item.itemId === targetId);
+    const from = next.findIndex((item) => String(item.itemId) === String(draggedId));
+    const to = next.findIndex((item) => String(item.itemId) === targetId);
     if (from < 0 || to < 0) return;
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
@@ -106,14 +106,27 @@ export default function OrderPage() {
     .find((item) => item.conflictMessage?.trim()) ?? conflictingItems[conflictingItems.length - 1];
   const latestConflictMessage = latestConflictItem?.conflictMessage
     ?? (latestConflictItem ? `${latestConflictItem.title}의 순서를 확인해 주세요.` : "실행 순서를 확인해 주세요.");
+  const warningItems = items.filter((item) => item.warning);
+  const warningMessages = [...new Set(warningItems
+    .map((item) => item.warningMessage?.trim())
+    .filter((message): message is string => Boolean(message)))];
 
   return <PageContainer className="gap-3 pb-10 pt-[70px] md:!px-[120px] md:!pt-0">
-    <PageHeader title="실행 순서 점검" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="items-center px-1 py-2 md:px-0 md:py-0" />
+    <PageHeader title="실행 순서 점검" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="mx-auto max-w-[342px] items-center px-1 py-2 md:max-w-[460px] md:px-0 md:py-0" />
     <div className="mx-auto flex w-full max-w-[342px] flex-col gap-10 pt-3 md:max-w-[460px] md:pt-[38px]">
       {hasConflict && <section className="rounded-[20px] bg-[#f3f3ff] px-5 pb-[22px] pt-5" role="alert">
         <Image alt="" className="size-6" height={24} src="/icons/order-warning.svg" width={24} />
         <h2 className="mt-2.5 text-sm font-bold text-[#43306d] md:text-base">순서 충돌 {conflictingItems.length}건</h2>
         <p className="mt-2.5 whitespace-pre-wrap text-xs font-normal leading-normal text-[#796b6c] md:text-sm">{latestConflictMessage}</p>
+      </section>}
+      {warningItems.length > 0 && <section className="rounded-[20px] bg-[#f3f3ff] px-5 pb-[22px] pt-5" role="status">
+        <Image alt="" className="size-6" height={24} src="/icons/order-warning.svg" width={24} />
+        <h2 className="mt-2.5 text-sm font-bold text-[#43306d] md:text-base">대체 담당자를 확인해 주세요</h2>
+        <div className="mt-2.5 flex flex-col gap-1.5 text-xs font-normal leading-normal text-[#796b6c] md:text-sm">
+          {warningMessages.length > 0
+            ? warningMessages.map((message) => <p className="whitespace-pre-wrap" key={message}>{message}</p>)
+            : <p>대체 담당자가 등록되지 않은 항목이 {warningItems.length}개 있어요.</p>}
+        </div>
       </section>}
       {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
 
@@ -149,7 +162,7 @@ export default function OrderPage() {
           const target = document.elementsFromPoint(event.clientX, event.clientY).find(
             (element) => element instanceof HTMLElement && element.dataset.orderId,
           );
-          if (target instanceof HTMLElement) moveItem(Number(target.dataset.orderId));
+          if (target instanceof HTMLElement && target.dataset.orderId) moveItem(target.dataset.orderId);
         }}
         onPointerUp={(event) => {
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {

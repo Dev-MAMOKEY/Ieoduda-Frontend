@@ -5,6 +5,7 @@ import type { ApiResponse } from "./auth-types";
 export type PlanStatus = "DRAFT" | "SEALED" | "DEACTIVATED";
 export type LifeAreaCategory = "FAMILY" | "RELATIONSHIP_CLEANUP" | "WORK_CONTINUITY";
 export type ConversationTurnType = "QUESTION" | "RESULT";
+export type ApiId = string | number;
 
 export interface ConsentResponse {
   agreed: boolean;
@@ -17,14 +18,14 @@ export interface ConsentRequest {
 }
 
 export interface PlanResponse {
-  planId: number;
+  planId: ApiId;
   status: PlanStatus;
   createdAt: string;
   orderConfirmedAt: string | null;
 }
 
 export interface PlanItem {
-  itemId: number;
+  itemId: ApiId;
   targetName: string | null;
   locationType: string | null;
   action: string | null;
@@ -56,12 +57,12 @@ export interface LifeAreaResponse {
 }
 
 export interface ConversationResponse {
-  conversationId: number;
+  conversationId: ApiId;
   createdAt: string;
 }
 
 export interface ConversationMessage {
-  messageId: number;
+  messageId: ApiId;
   role: "USER" | "ASSISTANT";
   content: string;
   createdAt: string;
@@ -84,7 +85,7 @@ export interface ConfirmerRegisterRequest {
 }
 
 export interface RecipientRegisterRequest {
-  itemId: number;
+  itemId: ApiId;
   name: string;
   email: string;
   maxWaitHours: number;
@@ -93,13 +94,13 @@ export interface RecipientRegisterRequest {
 
 export interface RoleCheckSummary {
   type: "RECIPIENT" | "CONFIRMER";
-  id: number;
+  id: ApiId;
   name: string;
   acceptanceStatus: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
 }
 
 export interface RecipientDetailResponse {
-  assigneeId: number;
+  assigneeId: ApiId;
   name: string;
   email: string;
   roleType: "FAMILY_MANAGER" | "WORK_MANAGER" | "RELATIONSHIP_MANAGER";
@@ -114,7 +115,7 @@ export interface RecipientUpdateRequest {
 }
 
 export interface RecipientUpdateResponse extends RecipientUpdateRequest {
-  assigneeId: number;
+  assigneeId: ApiId;
   roleType: "FAMILY_MANAGER" | "WORK_MANAGER" | "RELATIONSHIP_MANAGER";
   acceptanceStatus: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
   emailSent: boolean;
@@ -122,13 +123,28 @@ export interface RecipientUpdateResponse extends RecipientUpdateRequest {
 }
 
 export interface HandoffCheckAssignee {
-  assigneeId: number;
+  assigneeId: ApiId;
   name: string;
   roleType: "FAMILY_MANAGER" | "WORK_MANAGER" | "RELATIONSHIP_MANAGER";
   isEmailSent: boolean;
   isRoleAccepted: boolean;
   backupName: string | null;
   isBackupAccepted: boolean;
+  inquiry: string | null;
+  isReady: boolean;
+  lastCheckSentAt?: string | null;
+  checkEmailReached?: boolean;
+  checkRoleUnderstood?: boolean;
+  checkScopeUnderstood?: boolean;
+  checkInquiry?: string | null;
+  checkRespondedAt?: string | null;
+}
+
+export interface HandoffCheckConfirmer {
+  confirmId: ApiId;
+  name: string;
+  isEmailSent: boolean;
+  isRoleAccepted: boolean;
   inquiry: string | null;
   isReady: boolean;
 }
@@ -139,11 +155,18 @@ export interface HandoffCheckStatusResponse {
   assignees: HandoffCheckAssignee[];
   confirmerTotalCount: number;
   confirmerReadyCount: number;
-  confirmers: unknown[];
+  confirmers: HandoffCheckConfirmer[];
+}
+
+export interface ConfirmerDetailResponse {
+  confirmId: ApiId;
+  name: string;
+  email: string;
+  acceptanceStatus: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
 }
 
 export interface OrderCheckItem {
-  itemId: number;
+  itemId: ApiId;
   sortOrder: number;
   title: string;
   actionType: "DELETE" | "TRANSFER" | "OTHER";
@@ -152,6 +175,8 @@ export interface OrderCheckItem {
   acceptanceStatus: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | null;
   conflict: boolean;
   conflictMessage: string | null;
+  warning: boolean;
+  warningMessage: string | null;
 }
 
 export interface OrderCheckResponse {
@@ -161,3 +186,55 @@ export interface OrderCheckResponse {
 
 // 모든 계획 API가 사용하는 공통 응답 래퍼 타입입니다.
 export type PlanApiResponse<T> = ApiResponse<T>;
+
+export interface LifeAreaSummary {
+  category: LifeAreaCategory;
+  label: string;
+  summary: string;
+  itemCount: number;
+  isWritten: boolean;
+}
+
+export interface ReleaseStatus {
+  hasActiveCase: boolean;
+  status: string | null;
+  waitingEndsAt: string | null;
+  remainingDays: number | null;
+  canceledAt: string | null;
+}
+
+export interface PlanSummaryResponse {
+  planId: ApiId;
+  status: PlanStatus;
+  userName: string;
+  lifeAreas: LifeAreaSummary[];
+  recipientAcceptedCount: number;
+  recipientTotalCount: number;
+  confirmerAcceptedCount: number;
+  confirmerTotalCount: number;
+  confirmerNames: string[];
+  backupMissingCount: number;
+  unresolvedConflictCount: number;
+  waitingDays: number;
+  releaseCase: ReleaseStatus | null;
+}
+
+export interface ReleaseSettingsResponse {
+  planId: ApiId;
+  waitingDays: number;
+  selfWarningEmail: string | null;
+  selfWarningEmailVerified: boolean;
+  disputeContact: {
+    contactId: ApiId;
+    name: string;
+    email: string;
+    verified: boolean;
+  } | null;
+}
+
+export interface SelfWarningEmailResponse {
+  planId: ApiId;
+  email: string;
+  verified: boolean;
+  emailSent: boolean;
+}

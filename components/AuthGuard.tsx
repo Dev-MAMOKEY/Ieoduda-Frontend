@@ -7,7 +7,7 @@ import { restoreAuthentication } from "@/lib/api/auth";
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 // 토큰 발급이 다시 가능해지면 true로 변경해 인증 검증을 활성화합니다.
-const AUTH_GUARD_ENABLED = false;
+const AUTH_GUARD_ENABLED = true;
 
 export function AuthGuard({ children }: { children: ReactNode }) {
   if (!AUTH_GUARD_ENABLED) return children;
