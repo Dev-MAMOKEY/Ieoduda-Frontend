@@ -1,98 +1,85 @@
 import Image from "next/image";
-import Link from "next/link";
 import { AdminAuditTabs } from "@/components/AdminAuditTabs";
+import { BrandLogo } from "@/components/BrandLogo";
+import { Button } from "@/components/Button";
 import { getEmailAudit } from "@/lib/api";
 
 type EmailRecipient = ReturnType<typeof getEmailAudit>["recipients"][number];
-const button =
-  "h-[45px] rounded-[20px] border-0 bg-[#a8a8a8] text-sm text-white transition-all duration-200 hover:bg-[#929292] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#838383] active:scale-[0.985] lg:h-[47px] lg:rounded-[30px] lg:text-[15px]";
-function Recipient({ person }: { person: EmailRecipient }) {
-  return (
-    <article className="flex flex-col gap-[22px] rounded-[20px] bg-white p-5">
-      <div className="flex justify-between">
-        <div className="flex flex-col gap-2.5">
-          <strong className="text-sm lg:text-base">{person.role}</strong>
-          <span className="flex gap-2 text-sm text-[#838383]">
-            <span>{person.name}</span>
-            <span>{person.email}</span>
-          </span>
-        </div>
-        <span className="flex items-center gap-1.5 self-start text-[13px] text-[#838383] lg:text-[15px]">
-          {person.status}
-          {person.warning && (
-            <Image
-              alt=""
-              width={20}
-              height={20}
-              src="/icons/plan/cards/warning.svg"
-            />
-          )}
-        </span>
-      </div>
-      <div className="flex justify-between gap-3">
-        {person.events.map((event) => (
-          <div className="flex gap-2 text-xs lg:text-sm" key={event[0]}>
-            <strong>{event[0]}</strong>
-            <span className="text-[#838383]">{event[1]}</span>
-          </div>
-        ))}
-      </div>
-    </article>
-  );
+
+function maskEmail(email: string) {
+  const [name, domain] = email.split("@");
+  const visible = name.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(4, name.length - 2))}@${domain}`;
 }
+
+function RecipientCard({ person }: { person: EmailRecipient }) {
+  return <article className="flex w-full flex-col gap-[30px] rounded-[20px] bg-[#fbfafd] px-5 py-[22px]">
+    <header className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-[11px]">
+        <h2 className="text-base font-bold leading-none text-[#43306d] lg:text-lg">{person.role}</h2>
+        <div className="flex items-center gap-2 whitespace-nowrap text-sm font-semibold leading-none text-[#796b6c] lg:gap-3 lg:text-[15px] lg:font-medium">
+          <span>{person.name}</span>
+          <span>{maskEmail(person.email)}</span>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5 lg:gap-2.5">
+        <span className="whitespace-nowrap text-[13px] font-medium leading-none text-[#796b6c] lg:text-[15px]">
+          {person.warning ? "반송" : "발송됨"}
+        </span>
+        {person.warning && <Image alt="" className="size-[18px] lg:size-5" height={20} src="/icons/plan/cards/warning.svg" width={20} />}
+      </div>
+    </header>
+
+    <div className="flex w-full items-start gap-4 lg:justify-between lg:gap-2 lg:pr-[30px]">
+      {person.events.map(([, time], index) => <div className="flex shrink-0 items-center gap-1.5 lg:gap-2" key={`${index}-${time}`}>
+        <strong className="text-sm leading-none text-[#43306d] lg:text-base">{["발송", "열람", "완료"][index]}</strong>
+        <span className="text-xs font-semibold leading-none text-[#796b6c] lg:text-sm">{time}</span>
+      </div>)}
+    </div>
+  </article>;
+}
+
 export default function EmailPage() {
   const audit = getEmailAudit();
-  return (
-    <main className="min-h-dvh bg-[#f0f0f2] px-6 py-[70px] text-[#28292e] lg:px-0 lg:py-0">
-      <header className="hidden h-[125px] grid-cols-3 items-center px-[50px] lg:grid">
-        <Link className="p-2 text-[22px] font-semibold" href="/">
-          이어두다
-        </Link>
-        <AdminAuditTabs active="email" desktop />
-        <span />
+
+  return <main className="min-h-dvh text-[#43306d]">
+    <header className="hidden h-[125px] grid-cols-3 items-center px-[120px] lg:grid">
+      <BrandLogo />
+      <AdminAuditTabs active="email" desktop />
+      <span />
+    </header>
+
+    <section className="mx-auto flex w-full max-w-[390px] flex-col items-center px-6 pb-8 pt-[59px] lg:max-w-none lg:px-0 lg:pb-20 lg:pt-0">
+      <header className="mb-[22px] flex w-full items-center justify-center py-2 lg:hidden">
+        <h1 className="text-lg font-bold leading-none">이메일 발송 감사</h1>
       </header>
-      <div className="mx-auto flex max-w-[390px] flex-col gap-[22px] lg:max-w-none lg:gap-0">
-        <header className="grid grid-cols-[24px_1fr_24px] pb-5 lg:flex lg:justify-center lg:pb-0">
-          <span />
-          <h1 className="text-center text-lg font-bold lg:text-xl">
-            이메일 발송 감사
-          </h1>
-          <span />
-        </header>
-        <AdminAuditTabs active="email" />
-        <div className="flex flex-col gap-[22px] lg:px-[120px] lg:py-[50px]">
-          <div className="flex flex-col gap-3.5 lg:flex-row lg:justify-between">
-            <h2 className="text-base font-bold lg:text-lg">
-              수신자 총 {audit.totalCount}명
-            </h2>
-            <div className="flex gap-2.5 text-xs text-[#838383] lg:text-sm">
-              {audit.summary.map((item) => (
-                <span key={item}>{item}</span>
-              ))}
-            </div>
+      <AdminAuditTabs active="email" />
+      <h1 className="mt-2.5 hidden text-xl font-bold leading-none lg:block">이메일 발송 감사</h1>
+
+      <div className="mt-7 flex w-full flex-col gap-[22px] lg:mt-[50px] lg:w-[460px]">
+        <section className="flex flex-col gap-3.5">
+          <h2 className="text-base font-bold leading-none lg:text-lg">수신자 총 {audit.totalCount}명</h2>
+          <div className="flex gap-2.5">
+            <span className="rounded-[14px] bg-[#fbfafd] px-4 py-2.5 text-[13px] font-medium leading-none lg:rounded-[30px] lg:px-5 lg:py-3 lg:text-[15px]">발송 1</span>
+            <span className="rounded-[14px] bg-[#fbfafd] px-4 py-2.5 text-[13px] font-medium leading-none lg:rounded-[30px] lg:px-5 lg:py-3 lg:text-[15px]">반송 2</span>
           </div>
-          {audit.recipients.map((p) => (
-            <Recipient key={p.email} person={p} />
-          ))}
-          <div className="pb-2.5 text-center text-xs text-[#838383] lg:text-sm">
-            <p>전달 상태만 조회가 가능해요.</p>
-            <p className="mt-1.5">
-              이메일 본문·패키지 내용에는 접근할 수 없어요.
-            </p>
-          </div>
-          <button className={button} type="button">
-            재시도 정책 실행하기
-          </button>
-          <div className="grid grid-cols-2 gap-3.5">
-            <button className={button} type="button">
-              사건 동결하기
-            </button>
-            <button className={button} type="button">
-              파트너 문의하기
-            </button>
+        </section>
+
+        {audit.recipients.map((person) => <RecipientCard key={person.email} person={person} />)}
+
+        <div className="flex flex-col items-center gap-1.5 pb-2.5 text-center text-xs font-medium leading-none text-[#796b6c] lg:gap-2 lg:pb-0 lg:pt-2.5 lg:text-sm lg:font-normal">
+          <p>전달 상태만 조회가 가능해요.</p>
+          <p>이메일 본문·패키지 내용에는 접근할 수 없어요.</p>
+        </div>
+
+        <div className="flex flex-col gap-6 lg:gap-[22px] lg:pt-5">
+          <Button type="button">재시도 정책 실행하기</Button>
+          <div className="grid grid-cols-2 gap-[22px] lg:grid-cols-1">
+            <button className="flex min-h-11 items-center justify-center rounded-[14px] bg-[#7f62b8] px-5 py-3.5 text-sm font-medium leading-none text-[#fbfafd] transition-colors hover:bg-[#7055a4] lg:text-base" type="button">사건 동결하기</button>
+            <button className="flex min-h-11 items-center justify-center rounded-[14px] bg-[#e2dafa] px-5 py-3.5 text-sm font-medium leading-none text-[#43306d] transition-colors hover:bg-[#d6caef] lg:text-base" type="button">파트너 문의하기</button>
           </div>
         </div>
       </div>
-    </main>
-  );
+    </section>
+  </main>;
 }
