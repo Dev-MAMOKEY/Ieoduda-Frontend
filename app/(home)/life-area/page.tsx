@@ -131,10 +131,12 @@ function PlanItemCard({ item, displayOrder, busy, onApprove, onDelete, onSave }:
     && draft.title.trim() && draft.content.trim() && draft.disclosureScope;
 
   return (
-    <article className="flex h-full flex-col gap-4 rounded-[30px] bg-[#d5d5d5] px-[22px] py-5">
-      <div className="flex items-center justify-between text-xs text-[#838383]">
-        <span>계획 {displayOrder}</span>
-        <span>{item.status === "APPROVED" ? "승인 완료" : "승인 대기"}</span>
+    <article className="flex w-full flex-col gap-7 rounded-bl-[30px] rounded-br-[30px] rounded-tr-[30px] bg-[#fbfafd] px-[22px] pb-7 pt-[22px] md:max-w-[367px] md:px-[26px]">
+      <div className="flex items-start justify-between">
+        <span className="flex size-[26px] items-center justify-center rounded-full border-[1.5px] border-[#7f62b8] text-[13px] font-medium leading-none text-[#7f62b8]">{displayOrder}</span>
+        <button aria-label={`계획 ${displayOrder} 취소`} className="flex size-[26px] items-center justify-center rounded-md transition-colors hover:bg-[#f3f3ff] disabled:cursor-not-allowed disabled:opacity-50" disabled={busy} onClick={onDelete} type="button">
+          <Image alt="" height={26} src="/icons/plan/trash.svg" width={26} />
+        </button>
       </div>
 
       {editing ? (
@@ -162,21 +164,19 @@ function PlanItemCard({ item, displayOrder, busy, onApprove, onDelete, onSave }:
           </div>
         </div>
       ) : (
-        <div className="flex flex-1 flex-col gap-2">
-          {item.sourceExcerpt && <><span className="text-xs font-semibold text-[#838383]">원문 근거</span><p className="line-clamp-2 text-sm">{item.sourceExcerpt}</p></>}
-          <h2 className="font-bold">{item.title}</h2>
-          <p className="text-sm text-[#838383]">{item.content || item.action}</p>
+        <div className="flex flex-1 flex-col gap-7">
+          {item.sourceExcerpt && <div className="flex flex-col gap-2.5"><strong className="text-sm font-bold text-[#43306d] md:text-base">원문 근거</strong><p className="line-clamp-2 text-[13px] font-medium leading-normal text-[#28292e] md:text-[15px]">{item.sourceExcerpt}</p></div>}
+          <div className="flex flex-col gap-2.5"><h2 className="text-sm font-bold text-[#43306d] md:text-base">{item.title}</h2><p className="text-[13px] font-medium leading-normal text-[#838383] md:text-[15px]">{item.content || item.action}</p></div>
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className={editing ? "grid grid-cols-3 gap-2" : "flex flex-col gap-3.5"}>
         {editing ? <>
           <button className="col-span-2 h-10 rounded-[20px] bg-[#838383] text-sm text-white disabled:opacity-50" disabled={busy || !canSave} onClick={save} type="button">저장</button>
           <button className="h-10 rounded-[20px] bg-white text-sm" disabled={busy} onClick={() => setEditing(false)} type="button">취소</button>
         </> : <>
-          <button className="h-10 rounded-[20px] bg-[#838383] text-sm text-white disabled:opacity-50" disabled={busy || item.status === "APPROVED"} onClick={onApprove} type="button">{item.status === "APPROVED" ? "승인됨" : "승인"}</button>
-          <button className="h-10 rounded-[20px] bg-[#a8a8a8] text-sm text-white" disabled={busy} onClick={() => setEditing(true)} type="button">수정</button>
-          <button className="h-10 rounded-[20px] bg-[#a8a8a8] text-sm text-white" disabled={busy} onClick={onDelete} type="button">삭제</button>
+          <button className="min-h-[48px] rounded-[14px] bg-[#3c2b62] px-5 py-[14px] text-sm font-medium leading-none text-[#fbfafd] disabled:opacity-50 md:text-base" disabled={busy || item.status === "APPROVED"} onClick={onApprove} type="button">{item.status === "APPROVED" ? "승인 완료" : "승인하기"}</button>
+          <button className="min-h-[48px] rounded-[14px] bg-[#7f62b8] px-5 py-[14px] text-sm font-medium leading-none text-[#fbfafd] disabled:opacity-50 md:text-base" disabled={busy} onClick={() => setEditing(true)} type="button">수정하기</button>
         </>}
       </div>
     </article>
@@ -345,20 +345,45 @@ export default function LifeAreaPage() {
     getAssistantPayload(entry)?.type === "RESULT",
   )?.messageId;
 
-  return <PageContainer className="gap-[22px] scroll-pb-[240px] pb-0 pt-[70px]">
-    <PageHeader title="계획 작성" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="pb-5" />
-    {messages.length === 0 && <div className="self-start rounded-[30px] bg-[#d5d5d5] px-[22px] py-[18px] text-sm font-semibold">대화하듯 편하게 계획을 말씀해 주세요.</div>}
-    {messages.map((entry) => {
-      return <section className="flex w-full flex-col gap-[22px]" key={entry.messageId}>
-        <div className={`max-w-[85%] rounded-[30px] px-[22px] py-[18px] text-sm leading-6 ${entry.role === "USER" ? "self-end bg-white" : "self-start bg-[#d5d5d5] font-semibold"}`}>{getMessageContent(entry)}</div>
-        {entry.messageId === latestResultMessageId && items.length > 0 && <>
-          <div className="grid w-full gap-[22px] lg:grid-cols-3">{items.map((item, index) => <PlanItemCard busy={busyItemId === item.itemId} displayOrder={index + 1} item={item} key={item.itemId} onApprove={() => handleApprove(item.itemId)} onDelete={() => handleDelete(item.itemId)} onSave={(request) => handleUpdate(item.itemId, request)} />)}</div>
-          <Button className="md:h-[52px]" onClick={handleRegisterRecipients} type="button">역할 담당자 등록하기</Button>
-        </>}
-      </section>;
-    })}
-    {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
-    <div aria-hidden className="h-[120px] w-full shrink-0" ref={chatEndRef} />
-    <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-[390px] px-6 pb-6 md:left-[140px] md:right-[140px] md:w-auto md:max-w-none md:px-0"><form className="flex rounded-[30px] bg-white px-[22px] py-3.5 shadow" onSubmit={handleSubmit}><input ref={messageInputRef} aria-label="계획 메시지" className="min-w-0 flex-1 bg-transparent text-sm outline-none" disabled={conversationId == null} onChange={(event) => setMessage(event.target.value)} placeholder={pending ? "답변을 기다리는 동안 다음 내용을 입력할 수 있어요" : "계획 내용을 입력해 주세요"} value={message} /><button aria-label="메시지 보내기" disabled={pending || !message.trim()} type="submit"><Image src="/icons/plan/paper-plane-tilt.svg" alt="" width={24} height={24} /></button></form></div>
+  return <PageContainer className="gap-3 scroll-pb-[180px] pb-0 pt-[70px] md:!px-[120px] md:!pt-0">
+    <PageHeader title="대화 작성" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="items-center px-1 py-2 md:px-0 md:py-0" />
+
+    <aside className="flex w-full flex-col items-start rounded-[16px] bg-[#f3f3ff] px-5 pb-[22px] pt-[18px] md:hidden">
+      <div className="flex flex-col gap-2.5">
+        <Image src="/icons/life-area-warning.svg" alt="" width={24} height={24} className="size-6" />
+        <h2 className="text-sm font-bold leading-none text-[#43306d]">중요한 내용</h2>
+        <p className="text-xs font-medium leading-normal text-[#796b6c]">비밀번호, 인증번호 같은 민감한 내용은 적지 마세요.<br />위치 유형만 알려주세요.</p>
+      </div>
+    </aside>
+
+    <aside className="mx-auto hidden w-[342px] items-center justify-center rounded-[16px] bg-[#fbfafd] px-6 py-4 text-center md:flex">
+      <p className="text-lg font-bold leading-normal text-[#43306d]">비밀번호·PIN·인증번호는 적지 마세요.<br />위치 유형만 알려주세요.</p>
+    </aside>
+
+    <div className="mx-auto flex w-full flex-1 flex-col items-center pt-2 md:max-w-[460px] md:pt-[30px]">
+      <div className="flex w-full flex-col gap-3 md:gap-10">
+        {messages.length === 0 && <div className="self-start rounded-br-[14px] rounded-bl-[14px] rounded-tr-[14px] bg-[#fbfafd] px-[22px] py-[18px] text-[13px] font-medium leading-normal text-[#43306d] md:text-[15px]">대화하듯 편하게 계획을 말씀해 주세요.</div>}
+        {messages.map((entry) => {
+          return <section className="flex w-full flex-col gap-[22px] md:gap-10" key={entry.messageId}>
+            <div className={`whitespace-pre-wrap px-[22px] py-[18px] text-[13px] font-medium leading-normal md:text-[15px] ${entry.role === "USER" ? "self-end rounded-bl-[14px] rounded-br-[14px] rounded-tl-[14px] bg-[#43306d] text-[#fbfafd] md:w-full md:px-[30px] md:py-5" : "max-w-[85%] self-start rounded-bl-[14px] rounded-br-[14px] rounded-tr-[14px] bg-[#fbfafd] text-[#43306d]"}`}>{getMessageContent(entry)}</div>
+            {entry.messageId === latestResultMessageId && items.length > 0 && <>
+              <div className="grid w-full gap-[22px]">{items.map((item, index) => <PlanItemCard busy={busyItemId === item.itemId} displayOrder={index + 1} item={item} key={item.itemId} onApprove={() => handleApprove(item.itemId)} onDelete={() => handleDelete(item.itemId)} onSave={(request) => handleUpdate(item.itemId, request)} />)}</div>
+              <div className="self-start rounded-bl-[14px] rounded-br-[14px] rounded-tr-[14px] bg-[#fbfafd] px-[22px] py-[18px] text-[13px] font-medium leading-normal text-[#43306d] md:text-[15px]">역할 등록 순서가 맞으면 하단의 버튼을 눌러주세요</div>
+              <Button onClick={handleRegisterRecipients} type="button">역할 담당자 등록하기</Button>
+            </>}
+          </section>;
+        })}
+        {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
+      </div>
+      <div aria-hidden className="h-[150px] w-full shrink-0" ref={chatEndRef} />
+    </div>
+
+    <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-[390px] px-6 pb-6 md:max-w-[460px] md:px-0 md:pb-[50px]">
+      <p className="mb-2.5 text-center text-[13px] font-medium leading-none text-[#796b6c] md:text-[15px]">작성하신 내용은 AI가 읽고 정리해요.</p>
+      <form className="flex items-center rounded-[16px] border-[1.4px] border-[#d7d0d0] bg-[#fbfafd] px-[22px] py-[14px] md:py-4" onSubmit={handleSubmit}>
+        <input ref={messageInputRef} aria-label="계획 메시지" className="min-w-0 flex-1 bg-transparent text-[13px] font-medium text-[#584e4d] outline-none placeholder:text-[#796b6c] md:text-[15px]" onChange={(event) => setMessage(event.target.value)} placeholder={pending ? "답변을 기다리는 동안 다음 내용을 입력할 수 있어요" : "추가하고 싶은 내용을 입력해 주세요"} value={message} />
+        <button aria-label="메시지 보내기" className="ml-3 shrink-0 disabled:cursor-not-allowed" disabled={pending || !message.trim() || planId == null || conversationId == null} type="submit"><Image src="/icons/life-area-send.svg" alt="" width={24} height={24} className="size-[22px] md:size-6" /></button>
+      </form>
+    </div>
   </PageContainer>;
 }
