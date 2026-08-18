@@ -2,6 +2,7 @@
 
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
@@ -21,6 +22,9 @@ import {
 import type { PlanItem, RecipientDetailResponse } from "@/lib/api/plan-types";
 
 type ExistingAssignment = RecipientDetailResponse & { backupName: string | null };
+
+const roleTitles = ["가족 담당자", "관계 정리 담당자", "업무 처리 담당자"];
+const numberIcons = ["one", "two", "three"];
 
 export default function ManagerPage() {
   const router = useRouter();
@@ -67,11 +71,11 @@ export default function ManagerPage() {
     return next;
   });
 
-  // 같은 기간 버튼을 다시 누르면 선택을 해제하고, 다른 기간은 하나만 선택합니다.
-  const toggleWaitingPeriod = (itemId: number, days: number) => {
+  const changeWaitingPeriod = (itemId: number, value: string) => {
+    const days = value === "" ? null : Number(value);
     setWaitingPeriods((current) => ({
       ...current,
-      [itemId]: current[itemId] === days ? null : days,
+      [itemId]: days,
     }));
   };
 
@@ -92,38 +96,34 @@ export default function ManagerPage() {
     catch (error) { setErrorMessage(getApiErrorMessage(error, "역할 담당자를 등록하지 못했습니다.")); setPending(false); }
   };
 
-  return <PageContainer className="gap-[22px] py-[70px]">
-    <PageHeader title="역할 담당자 등록" backHref="/life-area" backLabel="계획 작성으로 돌아가기" className="pb-5" />
-    {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
-    <form className="flex w-full flex-col gap-[30px]" onSubmit={handleSubmit}>
-      {items.map((item) => {
+  return <PageContainer className="gap-3 pb-10 pt-[70px] md:!px-[120px] md:!pt-0">
+    <PageHeader title="역할 담당자 등록" backHref="/life-area" backLabel="계획 작성으로 돌아가기" className="items-center px-1 py-2 md:px-0 md:py-0" />
+    <form className="mx-auto flex w-full max-w-[342px] flex-col gap-5 pt-3 md:max-w-[460px] md:pt-[38px]" onSubmit={handleSubmit}>
+      {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
+      {items.map((item, index) => {
         const existing = existingAssignments[item.itemId];
-        return <fieldset className="flex flex-col gap-[18px] rounded-[20px] border border-[#d9d9d9] p-5" key={item.itemId}>
-        <legend className="px-2 font-bold">{item.title}</legend>
-        <FormField id={`${item.itemId}-name`} name={`${item.itemId}-name`} label="담당자 이름" placeholder="이름을 입력해 주세요" type="text" autoComplete="name" defaultValue={existing?.name ?? ""} readOnly={Boolean(existing)} />
-        <FormField id={`${item.itemId}-email`} name={`${item.itemId}-email`} label="담당자 이메일" placeholder="이메일을 입력해 주세요" type="email" autoComplete="email" defaultValue={existing?.email ?? ""} readOnly={Boolean(existing)} />
-        <div className="flex w-full flex-col gap-2.5">
-          <span className="px-2.5 text-sm font-semibold">대기 기간</span>
-          <div className="grid grid-cols-3 gap-2.5">
-            {[7, 14, 21].map((days) => {
-              const selected = waitingPeriods[item.itemId] === days;
-              return <button
-                aria-pressed={selected}
-                className={`h-[45px] rounded-[20px] text-sm transition-colors ${selected ? "bg-[#838383] font-semibold text-white" : "bg-white text-[#a8a8a8] hover:bg-[#e4e4e6]"}`}
-                key={days}
-                onClick={() => toggleWaitingPeriod(item.itemId, days)}
-                disabled={Boolean(existing)}
-                type="button"
-              >{days}일</button>;
-            })}
+        return <fieldset className="flex w-full flex-col gap-2" key={item.itemId}>
+          <legend className="sr-only">{roleTitles[index] ?? item.title}</legend>
+          <div className="flex w-full flex-col items-start gap-2 rounded-[16px] bg-[#f3f3ff] px-5 pb-[22px] pt-[18px]">
+            {index < 3 ? <Image alt={`${index + 1}번 역할`} height={24} src={`/icons/manager-number-${numberIcons[index]}.svg`} width={24} /> : <span className="flex size-6 items-center justify-center rounded-full border border-[#7f62b8] text-xs text-[#7f62b8]">{index + 1}</span>}
+            <strong className="text-sm text-[#43306d] md:text-base">{roleTitles[index] ?? item.title}</strong>
           </div>
-        </div>
-        <OutlineButton disabled={Boolean(existing)} onClick={() => toggleBackup(item.itemId)} type="button">{backups.has(item.itemId) ? "대체 담당자 제거" : "대체 담당자 등록"}</OutlineButton>
-        {backups.has(item.itemId) && <div className="flex flex-col gap-4"><FormField id={`${item.itemId}-backup-name`} name={`${item.itemId}-backup-name`} label="대체 담당자 이름" placeholder="이름을 입력해 주세요" type="text" autoComplete="name" defaultValue={existing?.backupName ?? ""} readOnly={Boolean(existing)} /><FormField id={`${item.itemId}-backup-email`} name={`${item.itemId}-backup-email`} label="대체 담당자 이메일" placeholder="이메일을 입력해 주세요" type="email" autoComplete="email" readOnly={Boolean(existing)} /></div>}
-      </fieldset>;
+          <div className="flex w-full flex-col gap-3 pb-3">
+            <FormField id={`${item.itemId}-name`} name={`${item.itemId}-name`} label="담당자 이름" placeholder="이름을 입력해 주세요" type="text" autoComplete="name" defaultValue={existing?.name ?? ""} readOnly={Boolean(existing)} />
+            <FormField id={`${item.itemId}-email`} name={`${item.itemId}-email`} label="담당자 이메일" placeholder="이메일을 입력해 주세요" type="email" autoComplete="email" defaultValue={existing?.email ?? ""} readOnly={Boolean(existing)} />
+            <FormField id={`${item.itemId}-waiting-period`} label="대기 기간" placeholder="대기 기간을 입력해 주세요 (7-30일)" type="number" inputMode="numeric" min={7} max={30} value={waitingPeriods[item.itemId] ?? ""} onChange={(event) => changeWaitingPeriod(item.itemId, event.target.value)} readOnly={Boolean(existing)} />
+          </div>
+          <OutlineButton className="rounded-[14px] border-[1.4px] border-[#7f62b8] text-[#7f62b8] md:text-base" disabled={Boolean(existing)} onClick={() => toggleBackup(item.itemId)} type="button">
+            <Image alt="" height={20} src="/icons/manager-user-plus.svg" width={20} />
+            {backups.has(item.itemId) ? "대체 담당자 제거하기" : "대체 담당자 등록하기"}
+          </OutlineButton>
+          {backups.has(item.itemId) && <div className="flex flex-col gap-3 pt-1"><FormField id={`${item.itemId}-backup-name`} name={`${item.itemId}-backup-name`} label="대체 담당자 이름" placeholder="이름을 입력해 주세요" type="text" autoComplete="name" defaultValue={existing?.backupName ?? ""} readOnly={Boolean(existing)} /><FormField id={`${item.itemId}-backup-email`} name={`${item.itemId}-backup-email`} label="대체 담당자 이메일" placeholder="이메일을 입력해 주세요" type="email" autoComplete="email" readOnly={Boolean(existing)} /></div>}
+        </fieldset>;
       })}
       {items.length === 0 && <p className="text-sm text-[#838383]">담당자를 연결할 계획 항목이 없습니다.</p>}
-      <Button disabled={pending || items.length === 0 || items.every((item) => existingAssignments[item.itemId])} type="submit">{pending ? "등록 중..." : "등록하기"}</Button>
+      <div className="pt-[22px]">
+        <Button disabled={pending || items.length === 0 || items.every((item) => existingAssignments[item.itemId])} type="submit">{pending ? "등록 중..." : "등록하기"}</Button>
+      </div>
     </form>
   </PageContainer>;
 }

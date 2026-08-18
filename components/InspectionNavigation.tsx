@@ -11,7 +11,7 @@ export function InspectionNavigation({ active }: { active: "role" | "handoff" })
       {items.map((item) => (
         <Link
           aria-current={active === item.id ? "page" : undefined}
-          className={`pb-1 text-base font-bold md:text-lg ${active === item.id ? "border-b-[1.2px] border-[#28292e]" : "text-[#a8a8a8]"}`}
+          className={`pb-1 text-base font-bold md:text-lg ${active === item.id ? "border-b-[1.2px] border-[#43306d] text-[#43306d]" : "text-[#a99d9e]"}`}
           href={item.href}
           key={item.id}
         >

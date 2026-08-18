@@ -16,17 +16,20 @@ export function FormField({
   const errorId = `${id}-error`;
 
   return (
-    <div className={`flex w-full flex-col gap-2 ${className}`}>
-      <label className="px-2.5 text-sm font-semibold md:text-base" htmlFor={id}>
+    <div className={`flex w-full flex-col gap-2.5 md:gap-2 ${className}`}>
+      <label
+        className="px-2.5 text-sm font-bold leading-none text-[#43306d] md:text-base"
+        htmlFor={id}
+      >
         {label}
       </label>
       <input
         aria-describedby={error ? errorId : undefined}
         aria-invalid={Boolean(error)}
-        className={`h-[41px] w-full rounded-[20px] border bg-white px-5 text-sm outline-none transition-colors placeholder:text-[#a8a8a8] focus-visible:ring-2 md:h-[48px] md:rounded-[30px] md:text-base ${
+        className={`min-h-[44px] w-full rounded-[14px] border bg-[#fbfafd] px-4 py-[14px] text-[13px] font-medium leading-none text-[#584e4d] outline-none transition-colors placeholder:text-[#a99d9e] focus-visible:ring-2 md:min-h-[48px] md:px-5 md:py-4 md:text-[15px] ${
           error
             ? "border-red-500 focus-visible:ring-red-500/25"
-            : "border-transparent focus-visible:ring-[#a8a8a8]/50"
+            : "border-transparent focus-visible:ring-[#43306d]/25"
         }`}
         id={id}
         {...inputProps}

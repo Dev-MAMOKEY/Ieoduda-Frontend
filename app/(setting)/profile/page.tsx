@@ -8,7 +8,7 @@ import { BottomTabBar } from "@/components/BottomTabBar";
 import type { ReactNode } from "react";
 
 const plans = [
-  { label: "계획 버전", value: "v2" },
+  { label: "계획 버전" },
   { label: "담당자 수락", href: "/role?person=jisu" },
   { label: "확인자 수락", href: "/role?person=jimin" },
   { label: "대기 이의제기", href: "/appeal" },
@@ -38,12 +38,10 @@ function Row({
 }: { label: string; value?: string; description?: ReactNode; href?: string }) {
   const inside = (
     <>
-      <span
-        className={`flex min-w-0 flex-1 flex-col ${description ? "gap-2" : ""}`}
-      >
-        <strong className="text-sm lg:text-base">{label}</strong>
+      <span className={`flex min-w-0 flex-1 flex-col ${description ? "gap-[7px]" : ""}`}>
+        <strong className="text-sm font-bold text-[#43306d] lg:text-[17px] lg:font-semibold">{label}</strong>
         {description && (
-          <span className="text-xs font-medium leading-relaxed text-[#838383] lg:text-sm">
+          <span className="text-xs font-medium leading-normal text-[#584e4d] lg:text-sm">
             {description}
           </span>
         )}
@@ -53,10 +51,10 @@ function Row({
           {value}
         </span>
       )}
-      <ForwardCaret />
+      <ForwardCaret className="lg:size-5" />
     </>
   );
-  const cls = `flex w-full items-center justify-between rounded-[20px] bg-white px-5 text-left ${description ? "min-h-[77px] py-[22px]" : "h-[57px]"}`;
+  const cls = "flex min-h-[62px] w-full items-center justify-between rounded-[14px] bg-white px-5 py-[22px] text-left lg:min-h-[65px] lg:py-6";
   return href ? (
     <Link className={cls} href={href}>
       {inside}
@@ -69,8 +67,8 @@ function Row({
 }
 function Section({ title, children, className = "" }: { title: string; children: ReactNode; className?: string }) {
   return (
-    <section className={`flex flex-col gap-3.5 md:gap-[22px] ${className}`}>
-      <h2 className="text-sm font-bold">{title}</h2>
+    <section className={`flex w-full flex-col gap-3.5 lg:gap-[22px] ${className}`}>
+      <h2 className="text-base font-bold text-[#43306d] lg:text-lg">{title}</h2>
       {children}
     </section>
   );
@@ -79,31 +77,27 @@ function Section({ title, children, className = "" }: { title: string; children:
 export default function ProfileSettingsPage() {
   return (
     <PageContainer
-      className="items-center gap-[22px] pb-[100px] pt-20 md:max-w-none md:gap-10 md:px-[120px] md:pb-[50px] md:pt-0"
+      className="items-center gap-0 pb-[100px] pt-[70px] lg:min-h-[calc(100dvh-125px)] lg:max-w-none lg:px-[120px] lg:pb-20 lg:pt-0"
       data-node-id="439:4905"
     >
-      <PageHeader className="pb-2.5 md:pb-0" title="설정" />
-      <UserProfileSummary />
-      <div className="grid w-full grid-cols-1 gap-[22px] md:grid-cols-2 md:gap-x-5">
+      <PageHeader title="설정" />
+      <div className="mx-auto flex w-full max-w-[342px] flex-col items-center gap-5 pt-5 lg:max-w-[460px] lg:gap-10 lg:pt-[50px]">
+        <UserProfileSummary />
+        <div className="flex w-full flex-col gap-7 lg:gap-5">
         <Section
-          className="order-1 md:col-start-1 md:row-start-1"
+          className="order-1"
           title="계정 관리"
         >
-          <Link
-            className="flex h-[57px] items-center justify-between rounded-[20px] bg-white p-5"
-            href="/login"
-          >
-            <strong className="text-sm lg:text-base">로그아웃</strong>
-            <Image
-              alt=""
-              width={18}
-              height={18}
-              src="/icons/settings/sign-out.svg"
-            />
-          </Link>
+          <div className="flex flex-col gap-3 lg:gap-[22px]">
+            <div className="hidden lg:block"><Row label="계획 비활성화" /></div>
+            <Link className="flex min-h-[62px] items-center justify-between rounded-[14px] bg-white px-5 py-[22px] lg:min-h-[65px] lg:py-6" href="/login">
+              <strong className="text-sm font-bold text-[#43306d] lg:text-[17px] lg:font-semibold">로그아웃</strong>
+              <Image alt="" className="size-[18px] lg:size-5" width={20} height={20} src="/icons/settings/sign-out.svg" />
+            </Link>
+          </div>
         </Section>
         <Section
-          className="order-2 md:col-start-2 md:row-span-2 md:row-start-1"
+          className="order-2 lg:order-3"
           title="계획 관리"
         >
           <div className="flex flex-col gap-3">
@@ -113,15 +107,16 @@ export default function ProfileSettingsPage() {
           </div>
         </Section>
         <Section
-          className="order-3 md:col-start-1 md:row-start-2"
+          className="order-3 lg:order-2"
           title="계획･계정 정리"
         >
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 lg:gap-[22px]">
             {cleanup.map((x) => (
               <Row key={x.label} {...x} />
             ))}
           </div>
         </Section>
+        </div>
       </div>
       <BottomTabBar activeTab="settings" />
     </PageContainer>

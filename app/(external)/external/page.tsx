@@ -1,175 +1,75 @@
-"use client";
+import { BrandLogo } from "@/components/BrandLogo";
+import { BackButton } from "@/components/BackButton";
+import { Button } from "@/components/Button";
+import { PageHeader } from "@/components/PageHeader";
 
-import Image from "next/image";
-import Link from "next/link";
-import { useState } from "react";
-import type { ChangeEvent, DragEvent } from "react";
-import { FormField } from "@/components/FormField";
-import { getExternalReview } from "@/lib/api";
+const documents = {
+  "death-certificate-kim": { owner: "김나무", title: "사망 진단서", submittedAt: "26.05.11 PM 11:50" },
+  "medical-examination-kim": { owner: "김나무", title: "검안서", submittedAt: "26.05.11 AM 12:30" },
+  "death-report-lee": { owner: "이신한", title: "사망 신고서", submittedAt: "26.12.01 AM 14:00" },
+  "death-certificate-lee": { owner: "이신한", title: "사망 진단서", submittedAt: "26.12.03 PM 09:55" },
+} as const;
 
-const actionClass =
-  "flex h-[45px] w-full items-center justify-center rounded-[20px] border-0 bg-[#a8a8a8] px-5 text-sm text-white transition-all duration-200 hover:bg-[#929292] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#838383] active:scale-[0.985] lg:h-[47px] lg:rounded-[30px] lg:text-[15px]";
+type DocumentId = keyof typeof documents;
 
-function DocumentPreview({
-  initialDocument,
-}: {
-  initialDocument: { name: string; receivedAt: string };
-}) {
-  const [document, setDocument] = useState<{
-    name: string;
-    receivedAt: string;
-    file: File | null;
-  }>({ ...initialDocument, file: null });
-  const [isDragging, setIsDragging] = useState(false);
-
-  const receiveFile = (file: File) => {
-    if (
-      file.type !== "application/pdf" &&
-      !file.name.toLowerCase().endsWith(".pdf")
-    )
-      return;
-    const now = new Date();
-    const pad = (value: number) => String(value).padStart(2, "0");
-    const receivedAt = `${pad(now.getFullYear() % 100)}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    setDocument({ name: file.name, receivedAt, file });
-  };
-
-  const handleDrop = (event: DragEvent<HTMLElement>) => {
-    event.preventDefault();
-    setIsDragging(false);
-    const file = event.dataTransfer.files[0];
-    if (file) receiveFile(file);
-  };
-
-  return (
-    <section
-      className={`flex w-full flex-col items-center gap-[18px] rounded-[20px] bg-white px-5 py-6 transition-shadow lg:h-[700px] lg:w-[500px] lg:gap-[60px] lg:py-9 ${isDragging ? "ring-2 ring-[#838383] ring-offset-2 ring-offset-[#f0f0f2]" : ""}`}
-      onDragEnter={(event) => {
-        event.preventDefault();
-        setIsDragging(true);
-      }}
-      onDragLeave={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node))
-          setIsDragging(false);
-      }}
-      onDragOver={(event) => {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = "copy";
-      }}
-      onDrop={handleDrop}
-    >
-      <div className="flex flex-col items-center gap-2">
-        <h2 className="max-w-full truncate text-sm font-bold lg:text-base">
-          {document.name}
-        </h2>
-        <p className="text-[11px] font-medium text-[#838383] lg:text-sm">
-          받은 시간 {document.receivedAt}
-        </p>
-      </div>
-      <div
-        aria-label="사망 진단서 미리보기"
-        className="flex h-[300px] w-[230px] flex-col items-center gap-5 border border-[#d5d5d5] bg-white px-5 py-[21px] lg:h-[450px] lg:w-[345px] lg:gap-[30px] lg:px-[30px] lg:py-8"
-      >
-        <span className="h-3.5 w-[95px] bg-[#d9d9d9] lg:h-5 lg:w-[142px]" />
-        {[0, 1].map((group) => (
-          <span className="flex flex-col gap-3 lg:gap-[18px]" key={group}>
-            {Array.from({ length: 6 }, (_, i) => (
-              <span
-                className="h-0.5 w-40 bg-[#d9d9d9] lg:h-[3px] lg:w-60"
-                key={i}
-              />
-            ))}
-          </span>
-        ))}
-      </div>
-    </section>
-  );
+function DocumentSheet() {
+  return <div aria-label="증빙 문서 미리보기" className="flex h-[300px] w-[230px] flex-col items-center gap-5 border border-[#d7d0d0] bg-white px-5 py-[21px] lg:h-auto lg:w-[340px] lg:border-[1.4px] lg:p-5">
+    <span className="h-3.5 w-[95px] shrink-0 bg-[#d7d0d0]" />
+    {[0, 1, 2].map((group) => <div className={`flex w-full flex-col gap-3 ${group === 2 ? "hidden lg:flex" : ""}`} key={group}>
+      {Array.from({ length: 6 }, (_, index) => <span className="h-0.5 w-full shrink-0 bg-[#d7d0d0]" key={index} />)}
+    </div>)}
+  </div>;
 }
 
-function SubjectCard({
-  subject,
-}: {
-  subject: { name: string; birthDate: string; matchStatus: string };
-}) {
-  return (
-    <section className="flex items-center justify-between rounded-[20px] bg-white px-5 py-[18px]">
-      <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-bold lg:text-base">대상자 정보</h2>
-        <div className="flex flex-col gap-2 text-[13px] font-medium text-[#838383] lg:text-sm">
-          <span>{subject.name}</span>
-          <span>{subject.birthDate}</span>
-        </div>
-      </div>
-      <div className="flex flex-col items-center gap-1">
-        <Image
-          alt=""
-          className="size-[18px] lg:size-5"
-          width={20}
-          height={20}
-          src="/icons/inspection/check-circle.svg"
-        />
-        <span className="text-[11px] font-medium text-[#838383] lg:text-xs">
-          {subject.matchStatus}
-        </span>
-      </div>
-    </section>
-  );
+function ActionButton({ children, tone }: { children: string; tone: "secondary" | "light" }) {
+  return <button className={`flex min-h-11 w-full items-center justify-center rounded-[14px] px-5 py-3.5 text-sm font-medium leading-none transition-colors lg:text-base ${tone === "secondary" ? "bg-[#7f62b8] text-[#fbfafd] hover:bg-[#7055a4]" : "bg-[#e2dafa] text-[#43306d] hover:bg-[#d6caef]"}`} type="button">{children}</button>;
 }
 
-export default function ExternalReviewPage() {
-  const review = getExternalReview();
-  const [memo, setMemo] = useState("");
-  return (
-    <main
-      className="min-h-dvh bg-[#f0f0f2] px-6 py-[70px] text-[#28292e] lg:px-0 lg:py-0"
-      data-node-id="439:4353"
-    >
-      <header className="hidden h-[125px] grid-cols-3 items-center px-[50px] lg:grid">
-        <Link className="w-fit p-2 text-[22px] font-semibold" href="/">
-          이어두다
-        </Link>
-        <span />
-        <span />
+export default async function ExternalReviewPage({ searchParams }: { searchParams: Promise<{ doc?: string }> }) {
+  const { doc } = await searchParams;
+  const documentId: DocumentId = doc && doc in documents ? doc as DocumentId : "death-certificate-kim";
+  const document = documents[documentId];
+
+  return <main className="min-h-dvh text-[#43306d]">
+    <header className="hidden h-[125px] items-center px-[120px] lg:flex"><BrandLogo /></header>
+
+    <section className="mx-auto flex w-full max-w-[390px] flex-col items-center px-6 pb-8 pt-[59px] lg:max-w-none lg:px-0 lg:pb-[50px] lg:pt-0">
+      <PageHeader backHref="/evidence" className="mb-[22px] py-2 lg:hidden" title="" />
+      <header className="hidden w-[460px] grid-cols-[24px_1fr_24px] items-center lg:grid">
+        <BackButton href="/evidence" label="등록된 증빙 자료로 돌아가기" />
+        <h1 className="text-center text-xl font-bold leading-none">{document.owner}님의 증빙 자료</h1>
+        <span aria-hidden className="size-6" />
       </header>
-      <div className="mx-auto flex w-full max-w-[390px] flex-col gap-[22px] lg:max-w-[1440px] lg:gap-0">
-        <header className="flex justify-center pb-5 lg:pb-0">
-          <h1 className="text-center text-lg font-bold lg:text-xl">
-            외부 파트너 증빙
-          </h1>
-        </header>
-        <div className="flex flex-col gap-[22px] lg:grid lg:grid-cols-[500px_minmax(0,1fr)] lg:gap-10 lg:px-[120px] lg:py-[50px]">
-          <DocumentPreview initialDocument={review.document} />
-          <div className="flex flex-col gap-[22px] lg:min-h-[520px] lg:justify-between">
-            <div className="flex flex-col gap-[22px]">
-              <SubjectCard subject={review.subject} />
-              <div className="text-center text-xs font-medium leading-relaxed text-[#838383] lg:text-sm">
-                <p>이 검토는 사망 사실 확인만을 위한 거예요.</p>
-                <p>계획 내용·역할별 패키지에는 접근할 수 없어요.</p>
-              </div>
-              <FormField
-                id="review-memo"
-                label="검토 메모"
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setMemo(e.target.value)
-                }
-                placeholder="검토 근거를 작성해 주세요"
-                value={memo}
-              />
-            </div>
-            <div className="flex flex-col gap-3.5 lg:gap-[22px]">
-              <button className={actionClass} type="button">
-                승인하기
-              </button>
-              <button className={actionClass} type="button">
-                반려 요청하기
-              </button>
-              <button className={actionClass} type="button">
-                추가 자료 요청하기
-              </button>
-            </div>
+
+      <div className="flex w-full flex-col gap-[22px] lg:mt-[50px] lg:w-[460px] lg:gap-5">
+        <section className="flex w-full flex-col items-center gap-[18px] rounded-[20px] bg-[#fbfafd] px-5 py-6 lg:gap-[60px] lg:py-9">
+          <header className="flex flex-col items-center gap-2 text-center lg:gap-3">
+            <h2 className="text-base font-bold leading-none lg:text-lg">{document.title}.pdf</h2>
+            <p className="text-xs font-medium leading-none text-[#796b6c] lg:text-sm">제출일 {document.submittedAt}</p>
+          </header>
+          <DocumentSheet />
+        </section>
+
+        <section className="flex flex-col gap-3 lg:gap-5">
+          <div className="flex flex-col items-center gap-1.5 py-0 text-center text-xs leading-none text-[#796b6c] lg:gap-2 lg:pb-2.5 lg:pt-0.5 lg:text-sm">
+            <p>이 검토는 사망 사실 확인만을 위한 거예요.</p>
+            <p>계획 내용·역할별 패키지에는 접근할 수 없어요.</p>
           </div>
-        </div>
+
+          <label className="flex flex-col gap-2.5">
+            <span className="px-2.5 text-sm font-bold leading-none lg:px-0 lg:text-base">검토 메모</span>
+            <input className="min-h-11 w-full rounded-[14px] border-0 bg-[#fbfafd] px-4 py-3.5 text-[13px] font-medium leading-none text-[#584e4d] outline-none placeholder:text-[#a99d9e] focus-visible:ring-2 focus-visible:ring-[#43306d]/25 lg:rounded-[20px] lg:px-5 lg:text-[15px]" placeholder="검토 근거를 작성해 주세요" />
+          </label>
+
+          <div className="flex flex-col gap-3.5 lg:gap-[22px]">
+            <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-1 lg:gap-[22px]">
+              <Button type="button">승인하기</Button>
+              <ActionButton tone="secondary">반려하기</ActionButton>
+            </div>
+            <ActionButton tone="light">추가자료 요청하기</ActionButton>
+          </div>
+        </section>
       </div>
-    </main>
-  );
+    </section>
+  </main>;
 }

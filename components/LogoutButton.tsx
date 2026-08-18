@@ -25,7 +25,7 @@ export function LogoutButton() {
   return (
     <button
       aria-label="로그아웃"
-      className="size-6 disabled:cursor-wait disabled:opacity-50"
+      className="size-6 shrink-0 disabled:cursor-wait disabled:opacity-50"
       disabled={pending}
       onClick={handleLogout}
       type="button"
@@ -33,7 +33,7 @@ export function LogoutButton() {
       <Image
         alt=""
         height={24}
-        src="/icons/layout/header/sign-out.svg"
+        src="/icons/plan-home/figma/sign-out.svg"
         width={24}
       />
     </button>

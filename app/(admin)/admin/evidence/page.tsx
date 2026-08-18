@@ -1,158 +1,81 @@
 "use client";
+
 import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
 import { AdminAuditTabs } from "@/components/AdminAuditTabs";
+import { BrandLogo } from "@/components/BrandLogo";
+import { Button } from "@/components/Button";
 import { getEvidenceAuditRecords } from "@/lib/api";
 
 type EvidenceRecord = ReturnType<typeof getEvidenceAuditRecords>[number];
-const button =
-  "h-[45px] rounded-[20px] border-0 bg-[#a8a8a8] text-sm text-white transition-all duration-200 hover:bg-[#929292] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#838383] active:scale-[0.985] lg:h-[47px] lg:rounded-[30px] lg:text-[15px]";
+const stages = ["검토 완료", "삭제 예정", "실제 삭제"];
+
 function Timeline({ dates }: { dates: string[] }) {
-  const stages = ["검토 완료", "삭제 예정", "실제 삭제"];
-  return (
-    <div className="flex gap-1 lg:gap-5">
-      {stages.map((stage, i) => (
-        <div className="contents" key={stage}>
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-[20px] bg-[#f0f0f2] px-3 py-4 lg:px-5">
-            <strong className="whitespace-nowrap text-xs lg:text-sm">
-              {stage}
-            </strong>
-            <span className="text-xs text-[#838383] lg:text-sm">
-              {dates[i]}
-            </span>
-          </div>
-          {i < 2 && (
-            <Image
-              alt=""
-              className="size-4 lg:size-[18px]"
-              width={18}
-              height={18}
-              src="/icons/common/caret-right.svg"
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-function Card({ record, selected, onSelect }: { record: EvidenceRecord; selected: boolean; onSelect: () => void }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <article
-      aria-selected={selected}
-      className={`flex cursor-pointer flex-col gap-[22px] rounded-[20px] border-solid bg-white p-5 outline-none transition-all duration-200 ${selected ? "border-[1.6px] border-[#838383] shadow-[0_4px_16px_rgba(40,41,46,.1)]" : record.failed ? "border-[1.2px] border-[#a8a8a8]" : "border-[1.6px] border-transparent hover:border-[#d9d9d9]"}`}
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-      role="option"
-      tabIndex={0}
-    >
-      <div className="flex justify-between">
-        <h2 className="text-sm font-bold lg:text-base">{record.title}</h2>
-        <span className="flex gap-1 text-[13px] text-[#838383] lg:text-[15px]">
-          {record.status}
-          {record.failed && (
-            <Image
-              alt=""
-              width={18}
-              height={18}
-              src="/icons/plan/cards/warning.svg"
-            />
-          )}
-        </span>
+  return <div className="flex w-full flex-col items-center gap-[5px] lg:gap-5">
+    {stages.map((stage, index) => <div className="contents" key={stage}>
+      <div className="flex w-full items-start justify-between rounded-[14px] bg-[#eeecee] px-5 py-4 lg:flex-col lg:gap-2 lg:rounded-[20px]">
+        <strong className="text-sm leading-none text-[#43306d] lg:text-base">{stage}</strong>
+        <span className="text-[13px] font-medium leading-none text-[#584e4d] lg:text-[15px]">{dates[index]}</span>
       </div>
-      <Timeline dates={record.dates} />
-      {record.failed ? (
-        <div className="flex items-center justify-between rounded-[20px] bg-[#f0f0f2] p-5">
-          <span className="flex flex-col gap-1.5">
-            <strong className="text-xs lg:text-sm">실패 사유</strong>
-            <span className="text-xs text-[#838383] lg:text-sm">
-              {record.failureReason}
-            </span>
-          </span>
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#f0f0f2]">
-            <Image
-              alt=""
-              className="size-[18px] opacity-80"
-              width={18}
-              height={18}
-              src="/icons/inspection/x-circle.svg"
-            />
-          </span>
-        </div>
-      ) : (
-        <div className="flex justify-between rounded-[20px] bg-[#d9d9d9] p-5">
-          <span className="flex flex-col gap-2">
-            <span className="flex gap-1.5">
-              <strong className="text-xs lg:text-sm">무결성 해시</strong>
-              <span className="text-xs text-[#838383] lg:text-sm">SHA-256</span>
-            </span>
-            <span className="text-xs text-[#838383] lg:text-sm">
-              {record.hash}
-            </span>
-          </span>
-          <button
-            className="text-xs text-[#838383] underline lg:text-sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard?.writeText(record.fullHash ?? "");
-              setCopied(true);
-            }}
-            type="button"
-          >
-            {copied ? "복사 완료" : "복사하기"}
-          </button>
-        </div>
-      )}
-    </article>
-  );
+      {index < stages.length - 1 && <Image alt="" className="size-4 rotate-90 lg:size-5" height={20} src="/icons/common/caret-right.svg" width={20} />}
+    </div>)}
+  </div>;
 }
+
+function EvidenceCard({ record }: { record: EvidenceRecord }) {
+  const [copied, setCopied] = useState(false);
+  async function copyHash() {
+    await navigator.clipboard?.writeText(record.fullHash ?? "");
+    setCopied(true);
+  }
+
+  return <article className="flex w-full flex-col gap-[22px] rounded-[18px] bg-[#fbfafd] px-5 pb-5 pt-6 lg:rounded-[20px] lg:p-5">
+    <header className="flex items-start justify-between gap-4">
+      <h2 className="text-base font-bold leading-none text-[#43306d] lg:text-lg">{record.title}</h2>
+      <div className="flex shrink-0 items-center gap-1.5 lg:gap-2">
+        <strong className="text-sm leading-none text-[#796b6c] lg:text-base">{record.status}</strong>
+        {record.failed && <Image alt="" className="size-[18px] lg:size-5" height={20} src="/icons/plan/cards/warning.svg" width={20} />}
+      </div>
+    </header>
+    <Timeline dates={record.dates} />
+    {record.failed ? <div className="flex items-center justify-between rounded-[14px] bg-[#f3f3ff] px-5 py-4 lg:rounded-[20px]">
+      <div className="flex flex-col gap-2 lg:gap-2.5">
+        <strong className="text-sm leading-none text-[#43306d] lg:text-base">실패 사유</strong>
+        <span className="text-[13px] font-medium leading-none text-[#584e4d] lg:text-[15px]">{record.failureReason}</span>
+      </div>
+      <Image alt="" className="size-[21px]" height={21} src="/icons/inspection/x-circle.svg" width={21} />
+    </div> : <div className="flex items-center justify-between rounded-[14px] bg-[#f3f3ff] px-5 py-4 lg:rounded-[20px]">
+      <div className="flex min-w-0 flex-col gap-2.5">
+        <div className="flex items-center gap-1.5">
+          <strong className="text-sm leading-none text-[#43306d] lg:text-base">무결성 해시</strong>
+          <span className="text-xs font-medium leading-none text-[#584e4d] lg:text-sm">SHA-256</span>
+        </div>
+        <span className="truncate text-[13px] font-medium leading-none text-[#584e4d] lg:text-[15px]">{record.hash}</span>
+      </div>
+      <button className="shrink-0 text-xs leading-none text-[#584e4d] underline underline-offset-2 lg:text-sm" onClick={copyHash} type="button">{copied ? "복사 완료" : "복사하기"}</button>
+    </div>}
+  </article>;
+}
+
 export default function EvidencePage() {
   const records = getEvidenceAuditRecords();
-  const [selected, setSelected] = useState<string | null>(null);
-  return (
-    <main className="min-h-dvh bg-[#f0f0f2] px-6 py-[70px] text-[#28292e] lg:px-0 lg:py-0">
-      <header className="hidden h-[125px] grid-cols-3 items-center px-[50px] lg:grid">
-        <Link className="p-2 text-[22px] font-semibold" href="/">
-          이어두다
-        </Link>
-        <AdminAuditTabs active="evidence" desktop />
-        <span />
+  return <main className="min-h-dvh text-[#43306d]">
+    <header className="hidden h-[125px] grid-cols-3 items-center px-[120px] lg:grid">
+      <BrandLogo />
+      <AdminAuditTabs active="evidence" desktop />
+      <span />
+    </header>
+    <section className="mx-auto flex w-full max-w-[390px] flex-col items-center px-6 pb-8 pt-[59px] lg:max-w-none lg:px-0 lg:pb-[50px] lg:pt-0">
+      <header className="mb-5 flex w-full items-center justify-center py-2 lg:hidden">
+        <h1 className="text-lg font-bold leading-none">증빙 삭제 감사</h1>
       </header>
-      <div className="mx-auto flex max-w-[390px] flex-col gap-[22px] lg:max-w-none lg:gap-0">
-        <header className="grid grid-cols-[24px_1fr_24px] pb-5 lg:flex lg:justify-center lg:pb-0">
-          <span />
-          <h1 className="text-center text-lg font-bold lg:text-xl">
-            증빙 삭제 감사
-          </h1>
-          <span />
-        </header>
-        <AdminAuditTabs active="evidence" />
-        <div
-          className="flex flex-col gap-[22px] lg:px-[120px] lg:py-[50px]"
-          role="listbox"
-        >
-          {records.map((r) => (
-            <Card
-              key={r.title}
-              record={r}
-              selected={selected === r.title}
-              onSelect={() => setSelected(r.title)}
-            />
-          ))}
-          <p className="py-2.5 text-center text-xs text-[#838383] lg:text-sm">
-            삭제된 원본은 어떤 형태로도 미리보기 및 복원되지 않아요
-          </p>
-          <button className={button} type="button">
-            재처리 요청하기
-          </button>
-        </div>
+      <AdminAuditTabs active="evidence" />
+      <h1 className="mt-2.5 hidden text-xl font-bold leading-none lg:block">증빙 삭제 감사</h1>
+      <div className="mt-7 flex w-full flex-col gap-7 lg:mt-[50px] lg:w-[460px] lg:gap-[22px]">
+        {records.map((record) => <EvidenceCard key={record.title} record={record} />)}
+        <p className="py-2.5 text-center text-xs leading-none text-[#796b6c] lg:py-3.5 lg:text-sm">삭제된 원본은 어떤 형태로도 미리보기 및 복원되지 않아요</p>
+        <Button type="button">재처리 요청하기</Button>
       </div>
-    </main>
-  );
+    </section>
+  </main>;
 }

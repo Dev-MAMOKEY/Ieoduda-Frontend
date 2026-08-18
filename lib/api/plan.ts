@@ -3,6 +3,7 @@
 import { apiClient } from "./client";
 import type {
   ConfirmerRegisterRequest,
+  ConsentRequest,
   ConsentResponse,
   ConversationResponse,
   ConversationTurnResponse,
@@ -34,8 +35,8 @@ export async function getConsent() {
   return unwrap(data);
 }
 
-export async function agreeToHandoff() {
-  const { data } = await apiClient.post<PlanApiResponse<ConsentResponse>>("/users/me/consent");
+export async function agreeToHandoff(request: ConsentRequest) {
+  const { data } = await apiClient.post<PlanApiResponse<ConsentResponse>>("/users/me/consent", request);
   return unwrap(data);
 }
 

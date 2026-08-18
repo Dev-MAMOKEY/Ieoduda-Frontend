@@ -1,90 +1,33 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/api";
+import { BrandLogo } from "@/components/BrandLogo";
 import { LogoutButton } from "@/components/LogoutButton";
+import { getCurrentUser } from "@/lib/api";
 
 const tabs = [
-  {
-    id: "home",
-    label: "홈",
-    href: "/plan",
-    icon: "/icons/layout/header/home-outline.svg",
-  },
-  {
-    id: "inspection",
-    label: "점검",
-    href: "/role",
-    icon: "/icons/layout/header/inspection.svg",
-  },
-  {
-    id: "settings",
-    label: "설정",
-    href: "/profile",
-    icon: "/icons/layout/header/profile.svg",
-  },
+  { id: "home", label: "홈", href: "/plan", icon: "/icons/plan-home/figma/home.svg" },
+  { id: "inspection", label: "점검", href: "/role", icon: "/icons/plan-home/figma/inspection.svg" },
+  { id: "settings", label: "설정", href: "/profile", icon: "/icons/plan-home/figma/settings.svg" },
 ];
 
-export function DesktopHeader({
-  authenticated = false,
-  showNavigation = false,
-  activeTab = "home",
-}: { authenticated?: boolean; showNavigation?: boolean; activeTab?: string }) {
+export function DesktopHeader({ authenticated = false, showNavigation = false, activeTab = "home" }: { authenticated?: boolean; showNavigation?: boolean; activeTab?: string }) {
   const user = getCurrentUser();
   return (
-    <header className="hidden h-[125px] w-full shrink-0 grid-cols-3 items-center px-[50px] md:grid">
-      <Link className="w-fit p-2 text-[22px] font-semibold" href="/plan">
-        이어두다
-      </Link>
+    <header className={`relative hidden h-[125px] w-full shrink-0 grid-cols-3 items-center px-[50px] xl:px-[120px] ${showNavigation ? "lg:grid" : "md:grid"}`}>
+      <BrandLogo />
       <div className="flex justify-center">
         {showNavigation && (
-          <nav
-            aria-label="주요 메뉴"
-            className="flex h-[66px] w-[240px] items-center justify-between rounded-[40px] border-[1.2px] border-[#d9d9d9] bg-white p-2.5"
-          >
+          <nav aria-label="주요 메뉴" className="flex shrink-0 items-center gap-[14px] rounded-[30px] border-[1.4px] border-[#e2dafa] bg-[#fbfafd] py-2 pl-3 pr-2">
             {tabs.map((tab) => {
               const active = tab.id === activeTab;
-              const iconSize = tab.id === "home" ? 28 : 24;
-              return (
-                <Link
-                  key={tab.id}
-                  href={tab.href}
-                  aria-current={active ? "page" : undefined}
-                  aria-label={tab.label}
-                  className={`flex h-11 items-center justify-center rounded-[30px] ${active ? `gap-2 pl-2.5 pr-3 ${tab.id === "inspection" ? "bg-[#d9d9d9]" : "bg-[#e7e7e7]"}` : "w-11"}`}
-                >
-                  <Image
-                    alt=""
-                    className={tab.id === "home" ? "size-7" : "size-6"}
-                    width={iconSize}
-                    height={iconSize}
-                    src={tab.icon}
-                  />
-                  {active && (
-                    <span className="text-[13px] font-semibold text-[#6e6e6e]">
-                      {tab.label}
-                    </span>
-                  )}
-                </Link>
-              );
+              return <Link key={tab.id} href={tab.href} aria-current={active ? "page" : undefined} aria-label={tab.label} className={`flex items-center justify-center rounded-[30px] py-1 ${active ? "gap-2 bg-[#e2dafa] pl-2.5 pr-3" : "px-2.5"}`}><Image alt="" className="size-6" width={24} height={24} src={tab.icon} />{active && <span className="text-[13px] font-semibold leading-none text-[#43306d]">{tab.label}</span>}</Link>;
             })}
           </nav>
         )}
       </div>
-      <div className="flex items-center justify-end gap-[30px]">
-        <div className="flex items-center gap-3.5">
-          <div className="size-[43px] rounded-full bg-[#d9d9d9]" />
-          <div className="flex flex-col gap-0.5">
-            <strong className="text-lg font-semibold">
-              {authenticated ? user.name : "비회원"}
-            </strong>
-            <span className="text-sm text-[#a8a8a8]">
-              {authenticated ? user.email : "로그인해 주세요"}
-            </span>
-          </div>
-        </div>
-        {authenticated && (
-          <LogoutButton />
-        )}
+      <div className="flex shrink-0 items-center justify-end gap-[30px]">
+        <div className="flex shrink-0 items-center gap-3.5"><div className="size-[43px] shrink-0 rounded-full bg-[#f3f3ff]" /><div className="flex shrink-0 flex-col gap-1"><strong className="text-lg font-bold leading-none text-[#43306d]">{authenticated ? user.name : "비회원"}</strong><span className="text-[15px] font-medium leading-none text-[#796b6c]">{authenticated ? user.email : "로그인해 주세요"}</span></div></div>
+        {authenticated && <LogoutButton />}
       </div>
     </header>
   );

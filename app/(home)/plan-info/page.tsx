@@ -5,7 +5,7 @@ import { PageContainer } from "@/components/PageContainer";
 export default function PlanInfoPage() {
   return (
     <PageContainer
-      className="items-center justify-center gap-5 py-[70px]"
+      className="items-center justify-center gap-5 py-[70px] md:!pb-[125px] md:!pt-0"
       data-node-id="513:3341"
     >
       <Card data-node-id="513:3342" variant="notice">
@@ -17,7 +17,7 @@ export default function PlanInfoPage() {
           </div>
         </div>
 
-        <Button href="/verifier">새 계획 만들기</Button>
+        <Button href="/verifier">확인하기</Button>
       </Card>
 
       <p className="w-full text-center text-[13px] font-medium text-[#838383]">

@@ -1,82 +1,94 @@
-// 기본 계획과 삶의 구역별 항목을 각각 조회해 계획 홈에 표시하는 화면입니다.
-
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BottomTabBar } from "@/components/BottomTabBar";
-import { Button } from "@/components/Button";
-import { ForwardCaret } from "@/components/ForwardCaret";
-import { PageContainer } from "@/components/PageContainer";
-import { PageHeader } from "@/components/PageHeader";
-import { getApiErrorMessage } from "@/lib/api/auth";
-import { getLifeAreas, getMyPlan, getOrderCheck } from "@/lib/api/plan";
-import type { LifeAreaResponse, PlanResponse } from "@/lib/api/plan-types";
+import { DesktopHeader } from "@/components/DesktopHeader";
+import { getCurrentUser } from "@/lib/api";
+import { getMyPlan, getOrderCheck } from "@/lib/api/plan";
 
-const categoryLabels = {
-  FAMILY: "가족",
-  RELATIONSHIP_CLEANUP: "관계 정리",
-  WORK_CONTINUITY: "업무 인계",
-} as const;
+const cards = [
+  { title: "전달 메시지", description: "가족･친구･지인에게", status: "작성완료", icon: "/icons/plan-home/figma/message.svg", href: "/life-area" },
+  { title: "관계 정리", description: "SNS 계정･부고 전달", status: "작성완료", icon: "/icons/plan-home/figma/relationship.svg", href: "/life-area" },
+  { title: "업무 처리", description: "디자인 프로젝트 인수인계", status: "작성완료", icon: "/icons/plan-home/figma/work.svg", href: "/life-area" },
+  { title: "확인자", description: "유지민･박성호", status: "등록완료", icon: "/icons/plan-home/figma/verifier.svg", href: "/verifier" },
+];
 
 export default function PlanPage() {
-  const [plan, setPlan] = useState<PlanResponse | null>(null);
-  const [areas, setAreas] = useState<LifeAreaResponse[]>([]);
-  const [conflictPlanCount, setConflictPlanCount] = useState(0);
+  const user = getCurrentUser();
+  const [conflictCount, setConflictCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let active = true;
-    // 먼저 내 계획을 조회한 후 받은 planId로 구역 항목과 충돌 정보를 각각 조회합니다.
-    getMyPlan()
-      .then(async (nextPlan) => {
-        const [nextAreas, order] = await Promise.all([
-          getLifeAreas(nextPlan.planId),
-          getOrderCheck(nextPlan.planId),
-        ]);
-        if (!active) return;
-        setPlan(nextPlan);
-        setAreas(nextAreas);
-        setConflictPlanCount(order.items.filter((item) => item.conflict).length);
-      })
-      .catch((error) => active && setErrorMessage(getApiErrorMessage(error, "계획을 불러오지 못했습니다.")));
-    return () => { active = false; };
+  const loadConflictCount = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage("");
+    try {
+      const plan = await getMyPlan();
+      const order = await getOrderCheck(plan.planId);
+      setConflictCount(order.items.filter((item) => item.conflict).length);
+    } catch {
+      setErrorMessage("미해결 충돌 정보를 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // 삶의 구역별 항목을 하나로 합친 뒤 서버에 확정된 실행 순서대로 표시합니다.
-  const items = areas
-    .flatMap((area) => area.items.map((item) => ({ ...item, category: area.category })))
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void loadConflictCount(), 0);
+    return () => window.clearTimeout(timer);
+  }, [loadConflictCount]);
 
   return (
-    <PageContainer className="items-center gap-[22px] pb-[100px] pt-[70px]">
-      <PageHeader title="홈" className="pb-2.5" />
-      <section className="flex w-full flex-col items-center gap-2 text-center">
-        <h2 className="text-xl font-bold">나의 삶의 계획</h2>
-        <p className="text-sm font-medium text-[#838383]">
-          지금은 계획 대기 중이예요 <br />
-          평상시엔 아무 일도 일어나지 않아요
-        </p>
-      </section>
-      {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
-      <div className="flex w-full gap-5 py-1.5">
-        <Button className="min-w-0 flex-1" href="/life-area?showPlans=true">계획 작성·수정</Button>
-        <Button className="min-w-0 flex-1" href="/manager/edit">담당자 수정</Button>
+    <main className="relative min-h-dvh w-full overflow-hidden text-[#28292e] md:!max-w-none md:!p-0">
+      <div aria-hidden className="pointer-events-none fixed inset-0">
+        <Image src="/images/plan-home/mobile-background.png" alt="" fill priority sizes="(min-width: 768px) 1px, 100vw" className="object-cover md:hidden" />
+        <Image src="/images/plan-home/desktop-background.png" alt="" fill priority sizes="(min-width: 768px) 100vw, 1px" className="hidden object-cover md:block" />
       </div>
-      <Link className="flex min-h-[60px] w-full items-center justify-between rounded-[20px] bg-[#d9d9d9] px-5 py-[18px]" href="/order">
-        <strong>충돌 계획 개수</strong>
-        <span className="flex items-center gap-1.5 text-sm text-[#838383]">{conflictPlanCount}개 <ForwardCaret /></span>
-      </Link>
-      {items.length === 0 && plan && <p className="py-10 text-sm text-[#838383]">아직 작성된 계획 항목이 없습니다.</p>}
-      {items.map((item) => (
-        <article className="flex w-full flex-col gap-2 rounded-[20px] bg-white px-5 py-[18px]" key={item.itemId}>
-          <span className="text-xs font-semibold text-[#838383]">{categoryLabels[item.category]}</span>
-          <h3 className="text-base font-bold">{item.title}</h3>
-          <p className="text-sm text-[#838383]">{item.content || item.action}</p>
-          <span className="text-xs text-[#a8a8a8]">{item.status}</span>
-        </article>
-      ))}
+
+      <section className="relative z-10 flex h-[262px] w-full flex-col items-center overflow-hidden rounded-b-[22px] px-6 md:h-[430px] md:px-0">
+        <Image src="/images/plan-home/mobile-hero.png" alt="" fill priority sizes="(min-width: 768px) 1px, 100vw" className="object-cover md:hidden" />
+        <Image src="/images/plan-home/desktop-hero.png" alt="" fill priority sizes="(min-width: 768px) 100vw, 1px" className="hidden object-cover md:block" />
+        <p aria-hidden className="absolute left-1/2 top-[70px] -translate-x-1/2 whitespace-nowrap text-[148px] font-bold leading-none tracking-[-22.2px] text-white/15 md:top-[93px] md:text-[280px] md:tracking-[-42px]">ieoduda</p>
+
+        <DesktopHeader authenticated showNavigation activeTab="home" />
+        <div aria-hidden className="h-[59px] shrink-0 lg:hidden" />
+        <header className="relative flex h-10 w-full shrink-0 items-center justify-center py-2 md:h-10 md:py-0">
+          <h1 className="text-[18px] font-bold leading-none text-[#43306d] md:text-[20px]">홈</h1>
+        </header>
+        <div className="relative flex flex-1 flex-col items-center gap-3 pb-[46px] pt-10 text-[#43306d] md:gap-4 md:pb-[72px] md:pt-[70px]">
+          <p className="text-[20px] font-bold leading-none text-[#3c2b62] md:text-[22px]">{user.name}님, 반가워요</p>
+          <div className="flex flex-col items-center gap-[3px] text-[14px] leading-none md:gap-[6px] md:text-[18px]">
+            <p className="font-semibold md:font-bold">지금은 계획 대기 중이예요</p>
+            <p className="font-bold">평상시엔 아무 일도 일어나지 않아요</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto flex w-full max-w-[390px] flex-col gap-3 px-6 pb-[110px] pt-5 md:max-w-[460px] md:gap-10 md:px-0 md:pb-20 md:pt-[30px]">
+        <div className="flex flex-col gap-3 md:gap-10">
+          <Link href="/order" className="flex w-full items-center justify-between rounded-[16px] bg-[#f3f3ff] px-5 py-[14px] md:py-4">
+            <span className="flex items-center gap-3 md:gap-[14px]">
+              <span className="flex size-[38px] items-center justify-center rounded-full bg-[#e2dafa] md:size-[42px]"><Image src="/icons/plan-home/figma/warning.svg" alt="" width={24} height={24} className="size-[22px] md:size-6" /></span>
+              <span className="flex flex-col gap-[6px]"><strong className="text-[14px] leading-none text-[#3c2b62] md:text-[16px]">미해결 충돌</strong><span className="text-[13px] font-medium leading-none text-[#584e4d] md:text-[15px]">{loading ? "확인 중" : `${conflictCount}건`}</span></span>
+            </span>
+            <Image src="/icons/common/caret-right.svg" alt="" width={18} height={18} className="size-[18px]" />
+          </Link>
+          {errorMessage && <button type="button" onClick={() => void loadConflictCount()} className="text-center text-xs text-red-700 underline">{errorMessage} 다시 시도</button>}
+          <div className="h-px w-full bg-[#a99d9e]" />
+        </div>
+
+        <div className="flex flex-col gap-5 md:gap-6">
+          {cards.map((card) => (
+            <Link key={card.title} href={card.href} className="flex items-center justify-between rounded-[16px] bg-[#fbfafd] px-4 py-5 md:px-5 md:py-[22px]">
+              <span className="flex items-center gap-3 md:gap-[14px]"><span className="flex size-10 items-center justify-center rounded-[20px] bg-[#f3f3ff] md:size-[46px]"><Image src={card.icon} alt="" width={26} height={26} className="size-6 md:size-[26px]" /></span><span className="flex flex-col gap-[6px]"><strong className="text-[14px] leading-none text-[#43306d] md:text-[16px]">{card.title}</strong><span className="text-[13px] font-medium leading-none text-[#584e4d] md:text-[15px]">{card.description}</span></span></span>
+              <span className="text-[12px] font-semibold leading-none text-[#796b6c] md:text-[14px]">{card.status}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
       <BottomTabBar activeTab="home" />
-    </PageContainer>
+    </main>
   );
 }
