@@ -17,7 +17,7 @@ export default function PlanInfoPage() {
           </div>
         </div>
 
-        <Button href="/verifier">새 계획 만들기</Button>
+        <Button href="/verifier">확인하기</Button>
       </Card>
 
       <p className="w-full text-center text-[13px] font-medium text-[#838383]">
