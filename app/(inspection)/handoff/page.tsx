@@ -60,7 +60,7 @@ function HandoffGroup({ type }: { type: "담당자" | "확인자" }) {
 
 export default function HandoffInspectionPage() {
   return (
-    <PageContainer className="role-preview gap-[22px] pb-[100px] pt-[70px] md:max-w-none md:gap-[30px] md:px-[120px] md:pb-[50px] md:pt-0">
+    <PageContainer className="role-preview gap-[22px] pb-[100px] pt-[70px] lg:max-w-none lg:gap-[30px] lg:px-[120px] lg:pb-[50px] lg:pt-0">
       <PageHeader className="pb-1.5 md:pb-0" title="인계 점검" />
       <InspectionNavigation active="handoff" />
       <div className="flex flex-col gap-10">

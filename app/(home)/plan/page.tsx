@@ -53,7 +53,7 @@ export default function PlanPage() {
         <p aria-hidden className="absolute left-1/2 top-[70px] -translate-x-1/2 whitespace-nowrap text-[148px] font-bold leading-none tracking-[-22.2px] text-white/15 md:top-[93px] md:text-[280px] md:tracking-[-42px]">ieoduda</p>
 
         <DesktopHeader authenticated showNavigation activeTab="home" />
-        <div aria-hidden className="h-[59px] shrink-0 md:hidden" />
+        <div aria-hidden className="h-[59px] shrink-0 lg:hidden" />
         <header className="relative flex h-10 w-full shrink-0 items-center justify-center py-2 md:h-10 md:py-0">
           <h1 className="text-[18px] font-bold leading-none text-[#43306d] md:text-[20px]">홈</h1>
         </header>

@@ -25,7 +25,7 @@ export function LogoutButton() {
   return (
     <button
       aria-label="로그아웃"
-      className="size-6 disabled:cursor-wait disabled:opacity-50"
+      className="size-6 shrink-0 disabled:cursor-wait disabled:opacity-50"
       disabled={pending}
       onClick={handleLogout}
       type="button"

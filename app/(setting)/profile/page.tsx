@@ -79,7 +79,7 @@ function Section({ title, children, className = "" }: { title: string; children:
 export default function ProfileSettingsPage() {
   return (
     <PageContainer
-      className="items-center gap-[22px] pb-[100px] pt-20 md:max-w-none md:gap-10 md:px-[120px] md:pb-[50px] md:pt-0"
+      className="items-center gap-[22px] pb-[100px] pt-20 lg:max-w-none lg:gap-10 lg:px-[120px] lg:pb-[50px] lg:pt-0"
       data-node-id="439:4905"
     >
       <PageHeader className="pb-2.5 md:pb-0" title="설정" />
