@@ -358,17 +358,15 @@ export default function LifeAreaPage() {
   return <PageContainer className="gap-3 scroll-pb-[180px] pb-0 pt-[70px] md:!px-[120px] md:!pt-0">
     <PageHeader title="대화 작성" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="mx-auto max-w-[342px] items-center px-1 py-2 md:max-w-[460px] md:px-0 md:py-0" />
 
-    <aside className="flex w-full flex-col items-start rounded-[16px] bg-[#f3f3ff] px-5 pb-[22px] pt-[18px] md:hidden">
-      <div className="flex flex-col gap-2.5">
-        <Image src="/icons/life-area-warning.svg" alt="" width={24} height={24} className="size-6" />
-        <h2 className="text-sm font-bold leading-none text-[#43306d]">중요한 내용</h2>
-        <p className="text-xs font-medium leading-normal text-[#796b6c]">비밀번호, 인증번호 같은 민감한 내용은 적지 마세요.<br />위치 유형만 알려주세요.</p>
-      </div>
-    </aside>
-
-    <aside className="mx-auto hidden w-[342px] items-center justify-center rounded-[16px] bg-[#fbfafd] px-6 py-4 text-center md:flex">
-      <p className="text-lg font-bold leading-normal text-[#43306d]">비밀번호·PIN·인증번호는 적지 마세요.<br />위치 유형만 알려주세요.</p>
-    </aside>
+    <div className="sticky top-0 z-10 w-full bg-[#f0f0f2] py-1 md:py-3">
+      <aside className="mx-auto flex w-full max-w-[342px] items-start rounded-[16px] bg-[#f3f3ff] px-5 pb-[22px] pt-[18px] md:max-w-[460px] md:items-center md:justify-center md:bg-[#fbfafd] md:px-6 md:py-4 md:text-center">
+        <div className="flex flex-col gap-2.5 md:block">
+          <Image src="/icons/life-area-warning.svg" alt="" width={24} height={24} className="size-6 md:hidden" />
+          <h2 className="text-sm font-bold leading-none text-[#43306d] md:hidden">중요한 내용</h2>
+          <p className="text-xs font-medium leading-normal text-[#796b6c] md:text-lg md:font-bold md:text-[#43306d]">비밀번호, PIN, 인증번호 같은 민감한 내용은 적지 마세요.<br />위치 유형만 알려주세요.</p>
+        </div>
+      </aside>
+    </div>
 
     <div className="mx-auto flex w-full flex-1 flex-col items-center pt-2 md:max-w-[460px] md:pt-[30px]">
       <div className="flex w-full flex-col gap-3 md:gap-10">
