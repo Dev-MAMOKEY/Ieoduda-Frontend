@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import { apiClient, publicApiClient } from "./client";
 import type { ApiResponse } from "./auth-types";
 import { unwrap } from "./response";
 import type {
@@ -21,23 +21,23 @@ import type {
 } from "./public-types";
 
 export async function getConfirmerInvitation(token: string) {
-  const { data } = await apiClient.get<ApiResponse<ConfirmerInviteResponse>>("/api/confirmer-acceptances/" + token);
+  const { data } = await publicApiClient.get<ApiResponse<ConfirmerInviteResponse>>("/api/confirmer-acceptances/" + token);
   return unwrap(data);
 }
 export async function decideConfirmerInvitation(token: string, decision: "accept" | "decline", inquiry = "") {
-  const { data } = await apiClient.post<ApiResponse<ConfirmerDecisionResponse>>("/api/confirmer-acceptances/" + token + "/" + decision, { inquiry });
+  const { data } = await publicApiClient.post<ApiResponse<ConfirmerDecisionResponse>>("/api/confirmer-acceptances/" + token + "/" + decision, { inquiry });
   return unwrap(data);
 }
 export async function reportDeath(token: string, deathDate?: string) {
-  const { data } = await apiClient.post<ApiResponse<DeathReportResponse>>("/api/confirmer-acceptances/" + token + "/death-report", { deathDate: deathDate || null });
+  const { data } = await publicApiClient.post<ApiResponse<DeathReportResponse>>("/api/confirmer-acceptances/" + token + "/death-report", { deathDate: deathDate || null });
   return unwrap(data);
 }
 export async function getRecipientInvitation(token: string) {
-  const { data } = await apiClient.get<ApiResponse<RecipientInviteResponse>>("/api/recipient-acceptances/" + token);
+  const { data } = await publicApiClient.get<ApiResponse<RecipientInviteResponse>>("/api/recipient-acceptances/" + token);
   return unwrap(data);
 }
 export async function decideRecipientInvitation(token: string, decision: "accept" | "decline", inquiry = "") {
-  const { data } = await apiClient.post<ApiResponse<RecipientInviteDecisionResponse>>("/api/recipient-acceptances/" + token + "/" + decision, { inquiry });
+  const { data } = await publicApiClient.post<ApiResponse<RecipientInviteDecisionResponse>>("/api/recipient-acceptances/" + token + "/" + decision, { inquiry });
   return unwrap(data);
 }
 export async function getWaitingStatus(caseId: string) {

@@ -27,6 +27,13 @@ export const apiClient = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+// 이메일 링크로 접근하는 공개 API 전용 클라이언트입니다.
+// 저장된 로그인 토큰을 첨부하거나 401 응답에서 토큰 재발급을 시도하지 않습니다.
+export const publicApiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { "Content-Type": "application/json" },
+});
+
 // 토큰 재발급 요청이 응답 인터셉터를 다시 거치지 않도록 별도 Axios 인스턴스를 사용합니다.
 const refreshClient = axios.create({
   baseURL: API_BASE_URL,
