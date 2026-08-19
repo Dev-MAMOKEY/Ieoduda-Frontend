@@ -358,8 +358,8 @@ export default function LifeAreaPage() {
   return <PageContainer className="gap-3 scroll-pb-[180px] pb-0 pt-[70px] md:!px-[120px] md:!pt-0">
     <PageHeader title="대화 작성" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="mx-auto max-w-[342px] items-center px-1 py-2 md:max-w-[460px] md:px-0 md:py-0" />
 
-    <div className="sticky top-0 z-10 w-full bg-[#f0f0f2] py-1 md:py-3">
-      <aside className="mx-auto flex w-full max-w-[342px] items-start rounded-[16px] bg-[#f3f3ff] px-5 pb-[22px] pt-[18px] md:max-w-[460px] md:items-center md:justify-center md:bg-[#fbfafd] md:px-6 md:py-4 md:text-center">
+    <div className="sticky top-0 z-10 mx-auto w-full max-w-[342px] py-1 md:max-w-[460px] md:py-3">
+      <aside className="flex w-full items-start rounded-[16px] bg-[#f3f3ff] px-5 pb-[22px] pt-[18px] md:items-center md:justify-center md:bg-[#fbfafd] md:px-6 md:py-4 md:text-center">
         <div className="flex flex-col gap-2.5 md:block">
           <Image src="/icons/life-area-warning.svg" alt="" width={24} height={24} className="size-6 md:hidden" />
           <h2 className="text-sm font-bold leading-none text-[#43306d] md:hidden">중요한 내용</h2>

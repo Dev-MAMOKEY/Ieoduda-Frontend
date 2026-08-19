@@ -5,7 +5,7 @@ import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
-import { getApiErrorMessage } from "@/lib/api/auth";
+import { getApiErrorMessage, logout } from "@/lib/api/auth";
 import { updateCurrentUser } from "@/lib/api/user";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
 import type { ChangeEvent, FormEvent } from "react";
@@ -47,7 +47,9 @@ export default function ProfileEditPage() {
     setErrorMessage("");
     try {
       await updateCurrentUser({ name, email });
-      router.push("/profile");
+      // 서버 로그아웃 요청이 실패해도 logout()의 finally에서 로컬 인증 정보는 정리됩니다.
+      await logout().catch(() => undefined);
+      router.replace("/login");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "개인정보를 변경하지 못했습니다."));
       setPending(false);
