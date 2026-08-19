@@ -1,7 +1,7 @@
 // 화면에서 사용할 회원가입, 로그인, 인증 복구 및 로그아웃 기능을 제공합니다.
 
 import axios from "axios";
-import { apiClient, refreshTokens } from "./client";
+import { apiClient, publicApiClient, refreshTokens } from "./client";
 import type {
   ApiResponse,
   LoginRequest,
@@ -19,7 +19,7 @@ import { clearAllStoredConversationIds } from "./conversation-storage";
 
 export async function signup(request: SignupRequest) {
   // 백엔드 회원가입 API에 검증된 이름, 이메일, 비밀번호 정보를 전달합니다.
-  const { data } = await apiClient.post<ApiResponse<SignupResponse>>(
+  const { data } = await publicApiClient.post<ApiResponse<SignupResponse>>(
     "/auth/signup",
     request,
   );
@@ -28,7 +28,7 @@ export async function signup(request: SignupRequest) {
 
 export async function login(request: LoginRequest) {
   // 로그인 성공 응답으로 받은 두 토큰을 Local Storage에 저장합니다.
-  const { data } = await apiClient.post<ApiResponse<TokenResponse>>(
+  const { data } = await publicApiClient.post<ApiResponse<TokenResponse>>(
     "/auth/login",
     request,
   );
