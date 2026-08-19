@@ -114,7 +114,6 @@ export default function AppealPage() {
 
     if (!selfEmail) errors.selfEmail = "본인 이메일을 입력해 주세요.";
     else if (!emailPattern.test(selfEmail)) errors.selfEmail = "올바른 이메일 형식으로 입력해 주세요.";
-    else if (!selfVerified) errors.selfEmail = "이메일로 보낸 검증 링크를 눌러 검증을 완료해 주세요.";
     if (!contactName) errors.contactName = "이의 제기 연락처의 이름을 입력해 주세요.";
     if (!contactEmail) errors.contactEmail = "이의 제기 연락처의 이메일을 입력해 주세요.";
     else if (!emailPattern.test(contactEmail)) errors.contactEmail = "올바른 이메일 형식으로 입력해 주세요.";
@@ -131,10 +130,28 @@ export default function AppealPage() {
     try {
       const currentPlanId = planId ?? (await getMyPlan()).planId;
       setPlanId(currentPlanId);
+      const latestSettings = await getReleaseSettings(currentPlanId);
+      const registeredEmail = latestSettings.selfWarningEmail?.trim().toLowerCase() ?? "";
+      const emailVerified = latestSettings.selfWarningEmailVerified
+        && registeredEmail === selfEmail.toLowerCase();
+
+      setSelfVerified(emailVerified);
+      if (!emailVerified) {
+        setFieldErrors((current) => ({
+          ...current,
+          selfEmail: "본인 경고 이메일의 검증 링크를 눌러 확인을 완료해 주세요.",
+        }));
+        setVerificationMessage("이메일 확인이 완료된 후 다시 등록해 주세요.");
+        setSubmissionPending(false);
+        return;
+      }
+
+      const latestContactId = latestSettings.disputeContact?.contactId ?? contactId;
+      setContactId(latestContactId);
       await Promise.all([
-        contactId == null
+        latestContactId == null
           ? registerDisputeContact(currentPlanId, contactName, contactEmail)
-          : updateDisputeContact(currentPlanId, contactId, contactName, contactEmail),
+          : updateDisputeContact(currentPlanId, latestContactId, contactName, contactEmail),
         updateReleasePolicy(currentPlanId, waitingPeriod),
       ]);
       router.push("/appeal/edit");
