@@ -211,6 +211,7 @@ export default function LifeAreaPage() {
     getMyPlan().then(async (plan) => {
       const areas = await getLifeAreas(plan.planId);
       let nextConversationId: ApiId | null = getStoredConversationId(plan.planId);
+      const hadStoredConversationId = nextConversationId != null;
       let history: MessageHistoryResponse | undefined;
 
       if (nextConversationId != null) {
@@ -235,8 +236,11 @@ export default function LifeAreaPage() {
       setConversationId(nextConversationId);
       const planItems = areas.flatMap((area) => area.items);
       const nextMessages = history?.messages ?? [];
-      // 계획 홈의 수정 버튼으로 진입하면 전체 계획을 최신 채팅 결과처럼 바로 보여줍니다.
-      const showPlans = new URLSearchParams(window.location.search).get("showPlans") === "true";
+      const searchParams = new URLSearchParams(window.location.search);
+      // 명시적인 전체 보기이거나, 계획 홈에서 진입했는데 복구할 로컬 대화 ID가 없으면
+      // 서버에 저장된 전체 계획을 최신 채팅 결과처럼 바로 보여줍니다.
+      const showPlans = searchParams.get("showPlans") === "true"
+        || (searchParams.get("from") === "plan" && !hadStoredConversationId);
       setMessages(showPlans && planItems.length > 0 ? [...nextMessages, {
         messageId: -Date.now(),
         role: "ASSISTANT",
