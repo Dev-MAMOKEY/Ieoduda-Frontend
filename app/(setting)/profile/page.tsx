@@ -19,7 +19,7 @@ import { logout } from "@/lib/api/auth";
 
 const plans = [
   { label: "계획 버전" },
-  { label: "담당자 수락", href: "/role?person=jisu" },
+  { label: "담당자 수락", href: "/role?type=manager" },
   { label: "확인자 수락", href: "/role?type=verifier" },
   { label: "대기 이의제기", href: "/appeal" },
 ];

@@ -32,6 +32,7 @@ function RoleContent() {
         setSelectedId((current) => {
           if (next.some((person) => person.id === current)) return current;
           if (requestedType === "verifier") return next.find((person) => person.type === "verifier")?.id ?? next[0]?.id ?? null;
+          if (requestedType === "manager") return next.find((person) => person.type !== "verifier")?.id ?? next[0]?.id ?? null;
           return next[0]?.id ?? null;
         });
       })
