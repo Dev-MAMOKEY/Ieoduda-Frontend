@@ -15,7 +15,7 @@ function SecondaryButton({ disabled, onClick }: { disabled: boolean; onClick: ()
 }
 
 export default function RoleAcceptancePage() {
-  const { invitation, loading, pending, error, decide } = useRecipientInvitation();
+  const { invitation, loading, pending, canDecide, error, decide } = useRecipientInvitation();
   const [inquiry, setInquiry] = useState("");
   const ownerName = invitation?.ownerName ?? "계획 작성자";
   const inviteeName = invitation?.assigneeName ?? "담당자";
@@ -79,9 +79,11 @@ export default function RoleAcceptancePage() {
             <p>부담이 된다면 거절해도 괜찮아요</p>
           </div>
           <div className="flex w-full flex-col gap-3.5 lg:gap-[22px]">
-            <Button disabled={loading || pending || !invitation} onClick={() => void decide("accept", inquiry)} type="button">역할 수락하기</Button>
-            <SecondaryButton disabled={loading || pending || !invitation} onClick={() => void decide("decline", inquiry)} />
+            <Button disabled={loading || pending || !canDecide} onClick={() => void decide("accept", inquiry)} type="button">{invitation?.acceptanceStatus === "ACCEPTED" ? "수락 완료" : "역할 수락하기"}</Button>
+            <SecondaryButton disabled={loading || pending || !canDecide} onClick={() => void decide("decline", inquiry)} />
           </div>
+          {invitation?.acceptanceStatus === "ACCEPTED" && <p className="text-sm font-medium text-[#43306d]" role="status">역할 수락이 완료되었습니다.</p>}
+          {invitation?.acceptanceStatus === "DECLINED" && <p className="text-sm font-medium text-[#796b6c]" role="status">역할을 거절했습니다.</p>}
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
         </section>
 

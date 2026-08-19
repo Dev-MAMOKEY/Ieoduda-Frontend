@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   decideConfirmerInvitation,
   decideRecipientInvitation,
   getConfirmerInvitation,
   getRecipientInvitation,
 } from "@/lib/api/public";
+import { getApiErrorMessage } from "@/lib/api/auth";
 import type { ConfirmerInviteResponse, RecipientInviteResponse } from "@/lib/api/public-types";
 
 function getToken() {
@@ -18,29 +19,33 @@ export function useRecipientInvitation() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const requestInFlight = useRef(false);
   useEffect(() => {
     const token = getToken();
     if (!token) {
       queueMicrotask(() => { setError("유효한 초대 토큰이 필요합니다."); setLoading(false); });
       return;
     }
-    getRecipientInvitation(token).then(setInvitation).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "초대를 불러오지 못했습니다.")).finally(() => setLoading(false));
+    getRecipientInvitation(token).then(setInvitation).catch((reason: unknown) => setError(getApiErrorMessage(reason, "초대를 불러오지 못했습니다."))).finally(() => setLoading(false));
   }, []);
   const decide = async (decision: "accept" | "decline", inquiry = "") => {
     const token = getToken();
-    if (!token || pending) return;
+    if (!token || requestInFlight.current || invitation?.acceptanceStatus !== "PENDING") return;
+    requestInFlight.current = true;
     setPending(true);
     setError("");
     try {
       await decideRecipientInvitation(token, decision, inquiry);
       setInvitation((current) => current ? { ...current, acceptanceStatus: decision === "accept" ? "ACCEPTED" : "DECLINED" } : current);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "응답을 처리하지 못했습니다.");
+      setError(getApiErrorMessage(reason, "응답을 처리하지 못했습니다."));
     } finally {
+      requestInFlight.current = false;
       setPending(false);
     }
   };
-  return { invitation, loading, pending, error, decide };
+  const canDecide = invitation?.acceptanceStatus === "PENDING";
+  return { invitation, loading, pending, canDecide, error, decide };
 }
 
 export function useConfirmerInvitation() {
@@ -48,27 +53,31 @@ export function useConfirmerInvitation() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const requestInFlight = useRef(false);
   useEffect(() => {
     const token = getToken();
     if (!token) {
       queueMicrotask(() => { setError("유효한 초대 토큰이 필요합니다."); setLoading(false); });
       return;
     }
-    getConfirmerInvitation(token).then(setInvitation).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "초대를 불러오지 못했습니다.")).finally(() => setLoading(false));
+    getConfirmerInvitation(token).then(setInvitation).catch((reason: unknown) => setError(getApiErrorMessage(reason, "초대를 불러오지 못했습니다."))).finally(() => setLoading(false));
   }, []);
   const decide = async (decision: "accept" | "decline", inquiry = "") => {
     const token = getToken();
-    if (!token || pending) return;
+    if (!token || requestInFlight.current || invitation?.acceptanceStatus !== "PENDING") return;
+    requestInFlight.current = true;
     setPending(true);
     setError("");
     try {
       await decideConfirmerInvitation(token, decision, inquiry);
       setInvitation((current) => current ? { ...current, acceptanceStatus: decision === "accept" ? "ACCEPTED" : "DECLINED" } : current);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "응답을 처리하지 못했습니다.");
+      setError(getApiErrorMessage(reason, "응답을 처리하지 못했습니다."));
     } finally {
+      requestInFlight.current = false;
       setPending(false);
     }
   };
-  return { invitation, loading, pending, error, decide };
+  const canDecide = invitation?.acceptanceStatus === "PENDING";
+  return { invitation, loading, pending, canDecide, error, decide };
 }
