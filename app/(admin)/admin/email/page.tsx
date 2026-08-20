@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminAuditTabs } from "@/components/AdminAuditTabs";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
+import { FormField } from "@/components/FormField";
 import { getEmailAudit, retryEmailDelivery } from "@/lib/api";
 
 type EmailAudit = Awaited<ReturnType<typeof getEmailAudit>>;
@@ -46,12 +47,9 @@ function RecipientCard({ person }: { person: EmailRecipient }) {
 export default function EmailPage() {
   const [audit, setAudit] = useState<EmailAudit>({ totalCount: 0, summary: [], recipients: [] });
   const [caseId, setCaseId] = useState("");
+  const [caseIdError, setCaseIdError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const load = useCallback(async (nextCaseId: string) => {
-    if (!nextCaseId) {
-      setErrorMessage("URL에 caseId가 필요합니다.");
-      return;
-    }
     try {
       setAudit(await getEmailAudit(nextCaseId));
       setErrorMessage("");
@@ -62,8 +60,24 @@ export default function EmailPage() {
   useEffect(() => {
     const nextCaseId = new URLSearchParams(window.location.search).get("caseId") ?? "";
     queueMicrotask(() => setCaseId(nextCaseId));
-    queueMicrotask(() => void load(nextCaseId));
+    if (nextCaseId) queueMicrotask(() => void load(nextCaseId));
   }, [load]);
+  const searchCase = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextCaseId = caseId.trim();
+
+    if (!nextCaseId) {
+      setCaseIdError("조회할 사건 ID를 입력해 주세요.");
+      return;
+    }
+
+    setCaseIdError("");
+    setCaseId(nextCaseId);
+    const url = new URL(window.location.href);
+    url.searchParams.set("caseId", nextCaseId);
+    window.history.replaceState(null, "", url);
+    await load(nextCaseId);
+  };
   const retryFailed = async () => {
     await Promise.all(audit.recipients.filter((item) => item.warning).map((item) => retryEmailDelivery(caseId, item.id)));
     await load(caseId);
@@ -84,6 +98,22 @@ export default function EmailPage() {
       <h1 className="mt-2.5 hidden text-xl font-bold leading-none lg:block">이메일 발송 감사</h1>
 
       <div className="mt-7 flex w-full flex-col gap-[22px] lg:mt-[50px] lg:w-[460px]">
+        <form className="flex w-full flex-col gap-3" onSubmit={searchCase}>
+          <FormField
+            autoComplete="off"
+            error={caseIdError}
+            id="email-audit-case-id"
+            label="사건 ID"
+            name="caseId"
+            onChange={(event) => {
+              setCaseId(event.currentTarget.value);
+              setCaseIdError("");
+            }}
+            placeholder="조회할 사건 ID를 입력해 주세요"
+            value={caseId}
+          />
+          <Button type="submit">이메일 발송 감사 조회하기</Button>
+        </form>
         {errorMessage && <p className="text-center text-sm text-red-700" role="alert">{errorMessage}</p>}
         <section className="flex flex-col gap-3.5">
           <h2 className="text-base font-bold leading-none lg:text-lg">수신자 총 {audit.totalCount}명</h2>
