@@ -381,9 +381,14 @@ export default function LifeAreaPage() {
             {entry.messageId === latestResultMessageId && items.length > 0 && <>
               <div className="grid w-full gap-[22px]">{items.map((item, index) => <PlanItemCard busy={busyItemId === item.itemId} displayOrder={index + 1} item={item} key={item.itemId} onApprove={() => handleApprove(item.itemId)} onDelete={() => setDeleteTargetId(item.itemId)} onSave={(request) => handleUpdate(item.itemId, request)} />)}</div>
               <div className="self-start rounded-bl-[14px] rounded-br-[14px] rounded-tr-[14px] bg-[#fbfafd] px-[22px] py-[18px] text-[13px] font-medium leading-normal text-[#43306d] md:text-[15px]">역할 등록 순서가 맞으면 하단의 버튼을 눌러주세요</div>
-              <Button onClick={openedFromPlanHome ? () => router.push("/plan") : handleRegisterRecipients} type="button">
-                {openedFromPlanHome ? "홈 화면으로 이동하기" : "역할 담당자 등록하기"}
+              <Button onClick={handleRegisterRecipients} type="button">
+                역할 담당자 등록하기
               </Button>
+              {openedFromPlanHome ? (
+                <Button className="!bg-[#7f62b8] hover:!bg-[#765aaa]" onClick={() => router.push("/plan")} type="button">
+                  홈 화면으로 이동하기
+                </Button>
+              ) : null}
             </>}
           </section>;
         })}
