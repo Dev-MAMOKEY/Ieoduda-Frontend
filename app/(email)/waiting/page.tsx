@@ -62,6 +62,7 @@ function NoticeCard({
 
 export default function WaitingPage() {
   const [status, setStatus] = useState<ReleaseStatusResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const statusLoaded = useRef(false);
@@ -71,8 +72,11 @@ export default function WaitingPage() {
     if (statusLoaded.current) return;
     statusLoaded.current = true;
     const caseId = query().get("caseId");
-    if (!caseId) { queueMicrotask(() => setError("유효한 공개 절차 정보가 필요합니다.")); return; }
-    getWaitingStatus(caseId).then(setStatus).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "대기 정보를 불러오지 못했습니다."));
+    if (!caseId) { queueMicrotask(() => { setError("유효한 공개 절차 정보가 필요합니다."); setLoading(false); }); return; }
+    getWaitingStatus(caseId)
+      .then(setStatus)
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "대기 정보를 불러오지 못했습니다."))
+      .finally(() => setLoading(false));
   }, []);
   const cancel = async () => {
     const caseId = query().get("caseId");
@@ -124,10 +128,10 @@ export default function WaitingPage() {
           <section className="flex w-full flex-col items-center gap-3 rounded-[20px] bg-[#fbfafd] px-5 py-[22px] lg:py-6">
             <div className="flex flex-col items-center gap-2 lg:gap-2.5">
               <p className="text-xs font-semibold leading-none text-[#796b6c] lg:text-sm">예정 발송일</p>
-              <strong className="text-lg leading-none lg:text-xl">{status?.waitingEndsAt ? new Date(status.waitingEndsAt).toLocaleDateString("ko-KR") : "확인 중"}</strong>
+              <strong className="text-lg leading-none lg:text-xl">{loading ? "확인 중" : status?.waitingEndsAt ? new Date(status.waitingEndsAt).toLocaleDateString("ko-KR") : "조회 실패"}</strong>
             </div>
             <div className="flex flex-col items-center gap-2 lg:gap-2.5">
-              <strong className="text-base leading-none lg:text-lg">남은 기간 {status?.remainingDays ?? "-"}일</strong>
+              <strong className="text-base leading-none lg:text-lg">{loading ? "남은 기간 확인 중" : status?.remainingDays != null ? `남은 기간 ${status.remainingDays}일` : "남은 기간 조회 실패"}</strong>
               <p className="text-xs font-medium leading-none text-[#796b6c] lg:text-sm">그 전까지는 언제든 취소가 가능해요</p>
             </div>
           </section>

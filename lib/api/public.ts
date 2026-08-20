@@ -47,7 +47,7 @@ export async function decideRecipientInvitation(token: string, decision: "accept
   return unwrap(data);
 }
 export async function getWaitingStatus(caseId: string) {
-  const { data } = await publicApiClient.get<ApiResponse<ReleaseStatusResponse>>("/api/release-cases/" + caseId + "/waiting");
+  const { data } = await apiClient.get<ApiResponse<ReleaseStatusResponse>>("/api/release-cases/" + caseId + "/waiting");
   return unwrap(data);
 }
 export async function cancelReleaseCase(caseId: string, token?: string) {
