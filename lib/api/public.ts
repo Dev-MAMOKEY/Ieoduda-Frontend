@@ -29,7 +29,8 @@ export async function decideConfirmerInvitation(token: string, decision: "accept
   return unwrap(data);
 }
 export async function reportDeath(token: string, deathDate?: string) {
-  const { data } = await publicApiClient.post<ApiResponse<DeathReportResponse>>("/api/confirmer-acceptances/" + token + "/death-report", { deathDate: deathDate || null });
+  const request = deathDate ? { deathDate } : {};
+  const { data } = await publicApiClient.post<ApiResponse<DeathReportResponse>>("/api/confirmer-acceptances/" + token + "/death-report", request);
   return unwrap(data);
 }
 export async function getRecipientInvitation(token: string) {

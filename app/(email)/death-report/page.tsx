@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
+import { getApiErrorMessage } from "@/lib/api/auth";
 import { reportDeath } from "@/lib/api/public";
 import { useConfirmerInvitation } from "@/lib/hooks/use-invitation";
 
@@ -14,6 +15,19 @@ const dateFields = [
   { label: "월", type: "number", min: 1, max: 12 },
   { label: "일", type: "number", min: 1, max: 31 },
 ] as const;
+
+function getValidDeathDate(date: string[]) {
+  if (date.every((part) => !part)) return undefined;
+  if (date.some((part) => !part)) throw new Error("사망 날짜는 연도, 월, 일을 모두 입력해 주세요.");
+
+  const [year, month, day] = date.map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  const isValid = parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day;
+  if (!isValid) throw new Error("실제로 존재하는 날짜를 입력해 주세요.");
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
 
 export default function DeathReportPage() {
   const router = useRouter();
@@ -33,7 +47,7 @@ export default function DeathReportPage() {
     setPending(true);
     setError("");
     try {
-      const deathDate = unknownDate || date.some((part) => !part) ? undefined : date[0] + "-" + date[1].padStart(2, "0") + "-" + date[2].padStart(2, "0");
+      const deathDate = unknownDate ? undefined : getValidDeathDate(date);
       await reportDeath(token, deathDate);
       const params = new URLSearchParams();
       params.set("token", token);
@@ -41,7 +55,7 @@ export default function DeathReportPage() {
       if (caseId) params.set("caseId", caseId);
       router.push("/evidence-submit?" + params.toString());
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "신고를 처리하지 못했습니다.");
+      setError(getApiErrorMessage(reason, "신고를 처리하지 못했습니다."));
     } finally { requestInFlight.current = false; setPending(false); }
   };
   return (
