@@ -4,6 +4,7 @@ import { unwrap } from "./response";
 import type {
   ConfirmerDecisionResponse,
   ConfirmerInviteResponse,
+  DeathReportInviteResponse,
   DeathReportResponse,
   EvidenceSubmitResponse,
   EvidenceType,
@@ -26,6 +27,10 @@ export async function getConfirmerInvitation(token: string) {
 }
 export async function decideConfirmerInvitation(token: string, decision: "accept" | "decline", inquiry = "") {
   const { data } = await publicApiClient.post<ApiResponse<ConfirmerDecisionResponse>>("/api/confirmer-acceptances/" + token + "/" + decision, { inquiry });
+  return unwrap(data);
+}
+export async function getDeathReportInvitation(token: string) {
+  const { data } = await publicApiClient.get<ApiResponse<DeathReportInviteResponse>>("/api/confirmer-acceptances/" + token + "/death-report");
   return unwrap(data);
 }
 export async function reportDeath(token: string, deathDate?: string) {

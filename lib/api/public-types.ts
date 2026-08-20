@@ -17,6 +17,15 @@ export interface ConfirmerDecisionResponse {
   reportDeathToken: string | null;
 }
 
+export interface DeathReportInviteResponse {
+  confirmerName: string;
+  ownerName: string;
+  reportStatus: "NOT_REPORTED" | "REPORTED" | "MATCHED" | "MISMATCHED";
+  email: string;
+  expiresAt: string;
+  contactEmail: string;
+}
+
 export interface RecipientInviteTask { title: string; content: string }
 export interface RecipientInviteResponse {
   assigneeName: string;

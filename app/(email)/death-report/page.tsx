@@ -3,12 +3,12 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
 import { getApiErrorMessage } from "@/lib/api/auth";
-import { reportDeath } from "@/lib/api/public";
-import { useConfirmerInvitation } from "@/lib/hooks/use-invitation";
+import { getDeathReportInvitation, reportDeath } from "@/lib/api/public";
+import type { DeathReportInviteResponse } from "@/lib/api/public-types";
 
 const dateFields = [
   { label: "년도", type: "number", min: 1900, max: 9999 },
@@ -31,14 +31,28 @@ function getValidDeathDate(date: string[]) {
 
 export default function DeathReportPage() {
   const router = useRouter();
-  const { invitation } = useConfirmerInvitation();
+  const [invitation, setInvitation] = useState<DeathReportInviteResponse | null>(null);
   const [date, setDate] = useState(["", "", ""]);
   const [unknownDate, setUnknownDate] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [dateError, setDateError] = useState("");
   const requestInFlight = useRef(false);
+  const invitationLoaded = useRef(false);
   const ownerName = invitation?.ownerName ?? "계획 작성자";
+
+  useEffect(() => {
+    if (invitationLoaded.current) return;
+    invitationLoaded.current = true;
+    const token = new URLSearchParams(window.location.search).get("token") ?? "";
+    if (!token) {
+      queueMicrotask(() => setError("유효한 신고 토큰이 필요합니다."));
+      return;
+    }
+    getDeathReportInvitation(token)
+      .then(setInvitation)
+      .catch((reason: unknown) => setError(getApiErrorMessage(reason, "사망 신고 정보를 불러오지 못했습니다.")));
+  }, []);
   const submit = async () => {
     const searchParams = new URLSearchParams(window.location.search);
     const token = searchParams.get("token") ?? "";
