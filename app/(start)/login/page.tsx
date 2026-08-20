@@ -10,6 +10,7 @@ import { FormField } from "@/components/FormField";
 import { LogoHeader } from "@/components/LogoHeader";
 import { getApiErrorMessage, login } from "@/lib/api/auth";
 import { getConsent, getMyPlan, getRoleChecks } from "@/lib/api/plan";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 import {
   hasFieldErrors,
   validateLogin,
@@ -73,16 +74,19 @@ export default function LoginPage() {
       // 로그인 성공 시 토큰을 저장하고 로그인 이후 안내 화면으로 이동합니다.
       await login(values);
       if (values.email.toLowerCase() === ADMIN_EMAIL) {
+        showSnackbarAfterNavigation("로그인되었습니다.");
         router.replace("/admin/evidence");
         return;
       }
       if (values.email.toLowerCase() === PARTNER_EMAIL) {
+        showSnackbarAfterNavigation("로그인되었습니다.");
         router.replace("/evidence");
         return;
       }
       // 로그인 직후 동의 상태를 조회해 신규·기존 사용자 흐름을 나눕니다.
       const consent = await getConsent();
       if (!consent.agreed) {
+        showSnackbarAfterNavigation("로그인되었습니다.");
         router.replace("/agreement");
         return;
       }
@@ -91,6 +95,7 @@ export default function LoginPage() {
       const plan = await getMyPlan();
       const roleChecks = await getRoleChecks(plan.planId);
       const hasConfirmer = roleChecks.some((role) => role.type === "CONFIRMER");
+      showSnackbarAfterNavigation("로그인되었습니다.");
       router.replace(hasConfirmer ? "/plan" : "/plan-info");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "로그인에 실패했습니다."));

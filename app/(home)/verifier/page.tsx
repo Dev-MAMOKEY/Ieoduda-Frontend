@@ -8,6 +8,7 @@ import { Button } from "@/components/Button";
 import { PageContainer } from "@/components/PageContainer";
 import { getApiErrorMessage } from "@/lib/api/auth";
 import { getMyPlan, registerConfirmers } from "@/lib/api/plan";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 const CONFIRMER_COUNT = 2;
 type FieldErrors = Record<string, string>;
@@ -38,7 +39,7 @@ function TextField({ index, kind, label, placeholder, type = "text", error }: {
         required
         type={type}
       />
-      {error && <p className="px-2.5 text-xs font-medium text-red-600" id={errorId} role="alert">{error}</p>}
+      {error && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" id={errorId} role="alert">{error}</p>}
     </div>
   );
 }
@@ -63,7 +64,7 @@ function WaitingPeriodField({ index, error }: { index: number; error?: string })
         required
         type="number"
       />
-      {error && <p className="px-2.5 text-xs font-medium text-red-600" id={errorId} role="alert">{error}</p>}
+      {error && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" id={errorId} role="alert">{error}</p>}
     </div>
   );
 }
@@ -132,6 +133,7 @@ export default function VerifierPage() {
     try {
       const plan = await getMyPlan();
       await registerConfirmers(plan.planId, confirmers);
+      showSnackbarAfterNavigation("지정 확인자가 등록되었습니다.");
       router.push("/life-area");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "지정 확인자를 등록하지 못했습니다."));

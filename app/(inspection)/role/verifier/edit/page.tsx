@@ -7,6 +7,7 @@ import { FormField } from "@/components/FormField";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage, getConfirmerDetail, getMyPlan, updateConfirmer } from "@/lib/api";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 type FieldErrors = Partial<Record<"name" | "email", string>>;
 
@@ -50,6 +51,7 @@ function EditVerifierContent() {
     try {
       const plan = await getMyPlan();
       await updateConfirmer(plan.planId, confirmId, nextName, nextEmail);
+      showSnackbarAfterNavigation("확인자 정보가 수정되었습니다.");
       router.push(`/role?person=${encodeURIComponent(confirmId)}`);
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "확인자 정보를 수정하지 못했습니다."));
@@ -65,7 +67,7 @@ function EditVerifierContent() {
       <PageHeader
         backHref="/role?person=jimin"
         backLabel="역할별 패키지 미리보기로 돌아가기"
-        className="pb-5 md:pb-0"
+        className="pb-5 md:mx-auto md:max-w-[460px] md:pb-0"
         title="지정 확인자 수정"
       />
       <form

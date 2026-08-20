@@ -35,7 +35,7 @@ export function FormField({
         {...inputProps}
       />
       {error && (
-        <p className="px-2.5 text-xs text-red-600" id={errorId} role="alert">
+        <p className="form-field-error px-2.5 text-xs text-red-600" id={errorId} role="alert">
           {error}
         </p>
       )}

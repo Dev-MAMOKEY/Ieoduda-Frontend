@@ -16,6 +16,7 @@ import { deleteCurrentUser } from "@/lib/api/user";
 import { clearAllStoredConversationIds } from "@/lib/api/conversation-storage";
 import { clearTokens } from "@/lib/api/token-storage";
 import { logout } from "@/lib/api/auth";
+import { showSnackbar, showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 const plans = [
   { label: "계획 버전" },
@@ -86,7 +87,7 @@ function Section({ title, children, className = "" }: { title: string; children:
   );
 }
 
-type ConfirmAction = "plan" | "account";
+type ConfirmAction = "plan" | "account" | "logout";
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
@@ -106,6 +107,7 @@ export default function ProfileSettingsPage() {
       await deactivatePlan(plan.planId);
       setPlanDeactivated(true);
       setActionMessage("계획이 비활성화되었습니다.");
+      showSnackbar("계획이 비활성화되었습니다.");
       router.refresh();
     } catch (error) {
       setActionMessage(getApiErrorMessage(error, "계획을 비활성화하지 못했습니다."));
@@ -124,6 +126,7 @@ export default function ProfileSettingsPage() {
       await deleteCurrentUser();
       clearTokens();
       clearAllStoredConversationIds();
+      showSnackbarAfterNavigation("계정이 삭제되었습니다.");
       router.replace("/login");
     } catch (error) {
       setActionMessage(getApiErrorMessage(error, "계정을 삭제하지 못했습니다."));
@@ -133,12 +136,14 @@ export default function ProfileSettingsPage() {
 
   const handleLogout = async () => {
     if (pendingAction) return;
+    setConfirmAction(null);
     setPendingAction("logout");
     try {
       await logout();
     } catch {
       // 서버 로그아웃 실패 여부와 관계없이 logout()이 로컬 인증 정보를 제거합니다.
     } finally {
+      showSnackbarAfterNavigation("로그아웃되었습니다.");
       router.replace("/login");
       router.refresh();
     }
@@ -159,7 +164,7 @@ export default function ProfileSettingsPage() {
         >
           <div className="flex flex-col gap-3 lg:gap-[22px]">
             <div><Row disabled={Boolean(pendingAction) || planDeactivated} label={planDeactivated ? "계획 비활성화 완료" : "계획 비활성화"} onClick={() => setConfirmAction("plan")} /></div>
-            <button className="flex min-h-[62px] w-full items-center justify-between rounded-[14px] bg-white px-5 py-[22px] text-left disabled:cursor-wait disabled:opacity-60 lg:min-h-[65px] lg:py-6" disabled={Boolean(pendingAction)} onClick={() => void handleLogout()} type="button">
+            <button className="flex min-h-[62px] w-full items-center justify-between rounded-[14px] bg-white px-5 py-[22px] text-left disabled:cursor-wait disabled:opacity-60 lg:min-h-[65px] lg:py-6" disabled={Boolean(pendingAction)} onClick={() => setConfirmAction("logout")} type="button">
               <strong className="text-sm font-bold text-[#43306d] lg:text-[17px] lg:font-semibold">{pendingAction === "logout" ? "로그아웃 중" : "로그아웃"}</strong>
               <Image alt="" className="size-[18px] lg:size-5" width={20} height={20} src="/icons/settings/sign-out.svg" />
             </button>
@@ -189,13 +194,15 @@ export default function ProfileSettingsPage() {
       </div>
       {confirmAction && (
         <ConfirmationDialog
-          confirmLabel={confirmAction === "account" ? "삭제하기" : "비활성화하기"}
+          confirmLabel={confirmAction === "account" ? "삭제하기" : confirmAction === "plan" ? "비활성화하기" : "로그아웃하기"}
           description={confirmAction === "account"
             ? <>계정과 모든 계획 데이터가 영구 삭제돼요.<br />삭제한 정보는 다시 복구할 수 없어요.</>
-            : <>비활성화하면 계획이 더 이상 실행되지 않아요.<br />필요한 내용을 모두 확인한 뒤 진행해 주세요.</>}
+            : confirmAction === "plan"
+              ? <>비활성화하면 계획이 더 이상 실행되지 않아요.<br />필요한 내용을 모두 확인한 뒤 진행해 주세요.</>
+              : <>로그아웃하면 로그인 화면으로 이동해요.<br />작성 중인 내용이 있다면 먼저 저장해 주세요.</>}
           onCancel={() => setConfirmAction(null)}
-          onConfirm={() => void (confirmAction === "plan" ? handleDeactivatePlan() : handleDeleteAccount())}
-          title={confirmAction === "account" ? "계정을 삭제할까요?" : "계획을 비활성화할까요?"}
+          onConfirm={() => void (confirmAction === "plan" ? handleDeactivatePlan() : confirmAction === "account" ? handleDeleteAccount() : handleLogout())}
+          title={confirmAction === "account" ? "계정을 삭제할까요?" : confirmAction === "plan" ? "계획을 비활성화할까요?" : "로그아웃할까요?"}
         />
       )}
       <BottomTabBar activeTab="settings" />

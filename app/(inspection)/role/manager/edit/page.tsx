@@ -7,6 +7,7 @@ import { FormField } from "@/components/FormField";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage, getMyPlan, getRecipientDetail, updateRecipient } from "@/lib/api";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 type FieldErrors = Partial<Record<"name" | "email", string>>;
 
@@ -56,6 +57,7 @@ function EditRoleManagerContent() {
     try {
       const plan = await getMyPlan();
       await updateRecipient(plan.planId, assigneeId, { name: nextName, email: nextEmail });
+      showSnackbarAfterNavigation("담당자 정보가 수정되었습니다.");
       router.push(`/role?person=${encodeURIComponent(assigneeId)}`);
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "담당자 정보를 수정하지 못했습니다."));
@@ -71,7 +73,7 @@ function EditRoleManagerContent() {
       <PageHeader
         backHref="/role"
         backLabel="역할별 패키지 미리보기로 돌아가기"
-        className="pb-5 md:pb-0"
+        className="pb-5 md:mx-auto md:max-w-[460px] md:pb-0"
         title="담당자 수정"
       />
       <div className="mx-auto flex w-full flex-col gap-10 md:max-w-[460px]">

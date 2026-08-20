@@ -7,6 +7,7 @@ import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
 import { LogoHeader } from "@/components/LogoHeader";
 import { getApiErrorMessage, signup } from "@/lib/api/auth";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 import {
   hasFieldErrors,
   validateSignup,
@@ -82,6 +83,7 @@ export default function SignupPage() {
     try {
       // 회원가입 성공 후 사용자가 로그인할 수 있도록 로그인 화면으로 이동합니다.
       await signup(values);
+      showSnackbarAfterNavigation("회원가입이 완료되었습니다. 로그인해 주세요.");
       router.replace("/login?signup=success");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "회원가입에 실패했습니다."));

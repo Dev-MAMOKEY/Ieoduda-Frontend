@@ -28,7 +28,7 @@ export function DesktopHeader({ authenticated = false, showNavigation = false, a
         )}
       </div>
       <div className="flex shrink-0 items-center justify-end gap-[30px]">
-        <div className="flex shrink-0 items-center gap-3.5"><div className="size-[43px] shrink-0 rounded-full bg-[#f3f3ff]" /><div className="flex shrink-0 flex-col gap-1"><strong className="text-lg font-bold leading-none text-[#43306d]">{authenticated ? user?.name ?? "사용자" : "비회원"}</strong><span className="text-[15px] font-medium leading-none text-[#796b6c]">{authenticated ? user?.email ?? "불러오는 중" : "로그인해 주세요"}</span></div></div>
+        <div className="flex shrink-0 items-center gap-3.5"><div className="size-[43px] shrink-0 rounded-full border-[1.6px] border-[#320c35] bg-[#f3f3ff]" /><div className="flex shrink-0 flex-col gap-1"><strong className="text-lg font-bold leading-none text-[#43306d]">{authenticated ? user?.name ?? "사용자" : "비회원"}</strong><span className="text-[15px] font-medium leading-none text-[#796b6c]">{authenticated ? user?.email ?? "불러오는 중" : "로그인해 주세요"}</span></div></div>
         {authenticated && <LogoutButton />}
       </div>
     </header>

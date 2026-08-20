@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { Button } from "@/components/Button";
 import { useRecipientInvitation } from "@/lib/hooks/use-invitation";
 
@@ -82,6 +83,8 @@ export default function RoleAcceptancePage() {
             <Button disabled={loading || pending || !canDecide} onClick={() => void decide("accept", inquiry)} type="button">{invitation?.acceptanceStatus === "ACCEPTED" ? "수락 완료" : "역할 수락하기"}</Button>
             <SecondaryButton disabled={loading || pending || !canDecide} onClick={() => void decide("decline", inquiry)} />
           </div>
+          {loading ? <ActionFeedback>초대 정보를 확인하고 있어요.</ActionFeedback> : null}
+          {pending ? <ActionFeedback>선택한 응답을 처리하고 있어요.</ActionFeedback> : null}
           {invitation?.acceptanceStatus === "ACCEPTED" && <p className="text-sm font-medium text-[#43306d]" role="status">역할 수락이 완료되었습니다.</p>}
           {invitation?.acceptanceStatus === "DECLINED" && <p className="text-sm font-medium text-[#796b6c]" role="status">역할을 거절했습니다.</p>}
           {error ? <p className="text-sm text-red-600">{error}</p> : null}

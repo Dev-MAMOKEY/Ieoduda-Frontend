@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { Button } from "@/components/Button";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage } from "@/lib/api/auth";
@@ -16,6 +17,7 @@ import {
   updateReleasePolicy,
 } from "@/lib/api/plan";
 import type { ApiId } from "@/lib/api/plan-types";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 const inputClass =
   "min-h-[48px] w-full rounded-[14px] border bg-white px-4 py-[14px] text-[13px] font-medium leading-none text-[#584e4d] outline-none placeholder:text-[#a99d9e] focus-visible:ring-2 focus-visible:ring-[#43306d]/25 md:px-5 md:py-4 md:text-[15px]";
@@ -58,6 +60,7 @@ export default function AppealPage() {
   const [contactVerificationMessage, setContactVerificationMessage] = useState("");
   const [submissionPending, setSubmissionPending] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState("");
+  const [settingsLoadError, setSettingsLoadError] = useState("");
 
   useEffect(() => {
     getMyPlan()
@@ -71,7 +74,9 @@ export default function AppealPage() {
         setContactEmail(settings.disputeContact?.email ?? "");
         setContactVerified(settings.disputeContact?.verified ?? false);
       })
-      .catch(() => { /* 신규 등록 화면은 기존 설정 조회 실패와 관계없이 입력할 수 있습니다. */ });
+      .catch((error: unknown) => {
+        setSettingsLoadError(getApiErrorMessage(error, "기존 대기·이의제기 정보를 불러오지 못했습니다. 입력하기 전에 잠시 후 다시 확인해 주세요."));
+      });
   }, []);
 
   const clearError = (name: FieldName) => {
@@ -225,6 +230,7 @@ export default function AppealPage() {
       const latestContactId = registeredContact.contactId ?? contactId;
       setContactId(latestContactId);
       await updateReleasePolicy(currentPlanId, waitingPeriod);
+      showSnackbarAfterNavigation("대기·이의제기 설정이 저장되었습니다.");
       router.push("/appeal/edit");
     } catch (error) {
       setSubmissionMessage(getApiErrorMessage(error, "대기 이의제기 정보를 저장하지 못했습니다."));
@@ -244,6 +250,7 @@ export default function AppealPage() {
         title="대기 이의제기"
       />
       <div className="mx-auto flex w-full max-w-[342px] flex-col gap-5 pt-5 md:max-w-[460px] md:gap-10 md:pt-[50px]">
+        {settingsLoadError ? <ActionFeedback tone="error">{settingsLoadError}</ActionFeedback> : null}
         <form className="contents" noValidate onSubmit={handleSubmit}>
         <section className="flex flex-col gap-6 md:gap-[22px] md:pb-[22px]">
           <div className="flex flex-col gap-3.5 md:gap-[22px] md:pb-[14px]">
@@ -253,7 +260,7 @@ export default function AppealPage() {
             </div>
             <div className="flex flex-col gap-2">
               <input aria-invalid={Boolean(fieldErrors.selfEmail)} className={`${inputClass} ${fieldErrors.selfEmail ? "border-red-500" : "border-transparent"}`} name="selfEmail" onChange={(event) => { setSelfEmail(event.target.value); clearError("selfEmail"); setSelfVerified(false); setVerificationMessage(""); }} placeholder="이메일을 입력해 주세요" type="email" value={selfEmail} />
-              {fieldErrors.selfEmail && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.selfEmail}</p>}
+              {fieldErrors.selfEmail && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.selfEmail}</p>}
               {verificationMessage && <p className="px-2.5 text-xs font-medium text-[#796b6c]" role="status">{verificationMessage}</p>}
             </div>
           </div>
@@ -268,15 +275,15 @@ export default function AppealPage() {
                 <h2 className="text-base font-bold text-[#43306d] md:text-lg">이의 제기 연락처</h2>
                 <span className="text-sm font-bold text-[#796b6c] md:text-base">{contactVerified ? "검증 완료" : "검증 필요"}</span>
               </div>
-              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactName)} className={`${inputClass} ${fieldErrors.contactName ? "border-red-500" : "border-transparent"}`} name="contactName" onChange={(event) => { setContactName(event.target.value); clearError("contactName"); setContactVerified(false); setContactVerificationMessage(""); }} placeholder="이름을 입력해 주세요" value={contactName} />{fieldErrors.contactName && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactName}</p>}</div>
-              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactEmail)} className={`${inputClass} ${fieldErrors.contactEmail ? "border-red-500" : "border-transparent"}`} name="contactEmail" onChange={(event) => { setContactEmail(event.target.value); clearError("contactEmail"); setContactVerified(false); setContactVerificationMessage(""); }} placeholder="이메일을 입력해 주세요" type="email" value={contactEmail} />{fieldErrors.contactEmail && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactEmail}</p>}{contactVerificationMessage && <p className="px-2.5 text-xs font-medium text-[#796b6c]" role="status">{contactVerificationMessage}</p>}</div>
+              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactName)} className={`${inputClass} ${fieldErrors.contactName ? "border-red-500" : "border-transparent"}`} name="contactName" onChange={(event) => { setContactName(event.target.value); clearError("contactName"); setContactVerified(false); setContactVerificationMessage(""); }} placeholder="이름을 입력해 주세요" value={contactName} />{fieldErrors.contactName && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactName}</p>}</div>
+              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactEmail)} className={`${inputClass} ${fieldErrors.contactEmail ? "border-red-500" : "border-transparent"}`} name="contactEmail" onChange={(event) => { setContactEmail(event.target.value); clearError("contactEmail"); setContactVerified(false); setContactVerificationMessage(""); }} placeholder="이메일을 입력해 주세요" type="email" value={contactEmail} />{fieldErrors.contactEmail && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactEmail}</p>}{contactVerificationMessage && <p className="px-2.5 text-xs font-medium text-[#796b6c]" role="status">{contactVerificationMessage}</p>}</div>
             </div>
             <Button className="cursor-pointer text-sm hover:!bg-[#37275a] md:text-base" disabled={contactVerificationPending || contactVerified} onClick={handleVerifyContactEmail} type="button">
               {contactVerificationPending ? "검증 메일 보내는 중..." : contactVerified ? "검증 완료" : "검증 메일 보내기"}
             </Button>
             <div className="flex flex-col gap-3.5 md:gap-[22px]">
               <h2 className="text-base font-bold text-[#43306d] md:text-lg">대기 기간</h2>
-              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.waitingPeriod)} className={`${inputClass} ${fieldErrors.waitingPeriod ? "border-red-500" : "border-transparent"}`} inputMode="numeric" max={30} min={7} name="waitingPeriod" onChange={() => clearError("waitingPeriod")} placeholder="대기 기간을 입력해 주세요 (7-30일)" step={1} type="number" />{fieldErrors.waitingPeriod && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.waitingPeriod}</p>}</div>
+              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.waitingPeriod)} className={`${inputClass} ${fieldErrors.waitingPeriod ? "border-red-500" : "border-transparent"}`} inputMode="numeric" max={30} min={7} name="waitingPeriod" onChange={() => clearError("waitingPeriod")} placeholder="대기 기간을 입력해 주세요 (7-30일)" step={1} type="number" />{fieldErrors.waitingPeriod && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.waitingPeriod}</p>}</div>
             </div>
           </div>
         </section>

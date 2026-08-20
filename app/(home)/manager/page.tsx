@@ -20,6 +20,7 @@ import {
   registerRecipients,
 } from "@/lib/api/plan";
 import type { ApiId, PlanItem, RecipientDetailResponse } from "@/lib/api/plan-types";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 type ExistingAssignment = RecipientDetailResponse & { backupName: string | null };
 
@@ -92,7 +93,7 @@ export default function ManagerPage() {
       setErrorMessage("담당자 정보와 대기 기간을 모두 입력해 주세요."); return;
     }
     setPending(true); setErrorMessage("");
-    try { await registerRecipients(planId, recipients); router.push("/order"); }
+    try { await registerRecipients(planId, recipients); showSnackbarAfterNavigation("역할 담당자가 등록되었습니다."); router.push("/order"); }
     catch (error) { setErrorMessage(getApiErrorMessage(error, "역할 담당자를 등록하지 못했습니다.")); setPending(false); }
   };
 

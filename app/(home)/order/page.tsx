@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage } from "@/lib/api/auth";
 import { confirmPlanOrder, getMyPlan, getOrderCheck, reorderPlanItems } from "@/lib/api/plan";
 import type { ApiId, OrderCheckItem } from "@/lib/api/plan-types";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 // 실행 순서 카드 하단의 담당자·대기 기간·승인 상태를 기존 디자인으로 표시합니다.
 function Detail({ label, value }: { label: string; value: string }) {
@@ -96,7 +97,7 @@ export default function OrderPage() {
   const handleConfirm = async () => {
     if (planId == null || hasConflict || pending) return;
     setPending(true);
-    try { await confirmPlanOrder(planId); router.push("/plan"); }
+    try { await confirmPlanOrder(planId); showSnackbarAfterNavigation("실행 순서가 확정되었습니다."); router.push("/plan"); }
     catch (error) { setErrorMessage(getApiErrorMessage(error, "순서를 확정하지 못했습니다.")); setPending(false); }
   };
 

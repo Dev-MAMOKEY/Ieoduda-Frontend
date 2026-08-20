@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage } from "@/lib/api/auth";
 import { agreeToHandoff } from "@/lib/api/plan";
 import type { ConsentRequest } from "@/lib/api/plan-types";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 const serviceGuideItems = [
   "사망이 안전하게 확인되면, 가족과 동료에게 필요한 일을 올바른 순서로 이메일로 전달합니다.",
@@ -91,6 +92,7 @@ export default function AgreementPage() {
 
     try {
       await agreeToHandoff(selections);
+      showSnackbarAfterNavigation("필수 안내 동의가 저장되었습니다.");
       router.replace("/plan-info");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "동의 내용을 저장하지 못했습니다."));

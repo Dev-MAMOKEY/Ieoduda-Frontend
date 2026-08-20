@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { ReactNode } from "react";
+import { Snackbar } from "@/components/Snackbar";
 
 export const metadata = {
   title: "이어두다",
@@ -9,7 +10,10 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Snackbar />
+      </body>
     </html>
   );
 }

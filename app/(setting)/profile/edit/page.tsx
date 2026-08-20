@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage, logout } from "@/lib/api/auth";
 import { updateCurrentUser } from "@/lib/api/user";
 import { useCurrentUser } from "@/lib/hooks/use-current-user";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 import type { ChangeEvent, FormEvent } from "react";
 
 type FieldErrors = Partial<Record<"name" | "email", string>>;
@@ -49,6 +50,7 @@ export default function ProfileEditPage() {
       await updateCurrentUser({ name, email });
       // 서버 로그아웃 요청이 실패해도 logout()의 finally에서 로컬 인증 정보는 정리됩니다.
       await logout().catch(() => undefined);
+      showSnackbarAfterNavigation("개인정보가 변경되었습니다. 다시 로그인해 주세요.");
       router.replace("/login");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "개인정보를 변경하지 못했습니다."));

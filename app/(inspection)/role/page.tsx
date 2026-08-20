@@ -13,6 +13,7 @@ import {
   resendConfirmerAcceptanceEmail,
   resendRecipientAcceptanceEmail,
 } from "@/lib/api";
+import { showSnackbar } from "@/lib/ui/snackbar";
 
 function RoleContent() {
   const searchParams = useSearchParams();
@@ -92,6 +93,7 @@ function RoleContent() {
       if (verifier) await resendConfirmerAcceptanceEmail(person.id);
       else await resendRecipientAcceptanceEmail(person.id);
       setResendMessage("수락 요청 이메일을 다시 보냈습니다.");
+      showSnackbar("수락 요청 이메일을 다시 보냈습니다.");
     } catch (error) {
       setResendMessage(getApiErrorMessage(error, "수락 요청 이메일을 다시 보내지 못했습니다."));
     } finally {
