@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { completePackageAction, getPosthumousPackage } from "@/lib/api/public";
 import type { PosthumousPackageResponse } from "@/lib/api/public-types";
@@ -36,13 +36,14 @@ export default function PackagePage() {
   const [data, setData] = useState<PosthumousPackageResponse | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const completionInFlight = useRef(false);
   const sessionId = () => new URLSearchParams(window.location.search).get("accessSessionId") ?? "";
   const load = async () => { const id = sessionId(); if (!id) return setError("유효한 접근 세션이 필요합니다."); try { setData(await getPosthumousPackage(id)); } catch (reason) { setError(reason instanceof Error ? reason.message : "사후 패키지를 불러오지 못했습니다."); } };
   // 최초 접근 세션은 URL에서 한 번만 읽습니다.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { queueMicrotask(() => void load()); }, []);
-  const activeAction = data?.actions.find((action) => action.status !== "COMPLETED") ?? data?.actions[0];
-  const complete = async () => { if (!activeAction) return; setPending(true); try { await completePackageAction(sessionId(), activeAction.actionId); await load(); } catch (reason) { setError(reason instanceof Error ? reason.message : "단계를 완료하지 못했습니다."); } finally { setPending(false); } };
+  const activeAction = data?.actions.find((action) => action.status !== "COMPLETED");
+  const complete = async () => { if (!activeAction || completionInFlight.current) return; completionInFlight.current = true; setPending(true); try { await completePackageAction(sessionId(), activeAction.actionId); await load(); } catch (reason) { setError(reason instanceof Error ? reason.message : "단계를 완료하지 못했습니다."); } finally { completionInFlight.current = false; setPending(false); } };
   const issueHref = activeAction ? "/backup?accessSessionId=" + encodeURIComponent(sessionId()) + "&actionId=" + encodeURIComponent(activeAction.actionId) : "/backup";
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] items-center px-[120px] lg:flex"><BrandLogo /></header>

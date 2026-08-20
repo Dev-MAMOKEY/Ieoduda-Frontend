@@ -5,7 +5,7 @@ import Image from "next/image";
 import { BrandLogo } from "@/components/BrandLogo";
 import { PageHeader } from "@/components/PageHeader";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { completePackageAction, getPosthumousPackage, reportPackageIssue } from "@/lib/api/public";
 import type { PackageActionResponse } from "@/lib/api/public-types";
 
@@ -38,6 +38,7 @@ export default function BackupPage() {
   const [action, setAction] = useState<PackageActionResponse | null>(null);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  const completionInFlight = useRef(false);
   const query = () => new URLSearchParams(window.location.search);
   useEffect(() => {
     const params = query();
@@ -55,7 +56,7 @@ export default function BackupPage() {
       })
       .catch((reason: unknown) => setMessage(reason instanceof Error ? reason.message : "단계 정보를 불러오지 못했습니다."));
   }, []);
-  const finish = async () => { const params = query(); const sessionId = params.get("accessSessionId"); const actionId = params.get("actionId"); if (!sessionId || !actionId) return setMessage("유효한 단계 정보가 필요합니다."); setPending(true); try { await completePackageAction(sessionId, actionId); router.push("/package?accessSessionId=" + encodeURIComponent(sessionId)); } catch (reason) { setMessage(reason instanceof Error ? reason.message : "단계를 완료하지 못했습니다."); } finally { setPending(false); } };
+  const finish = async () => { const params = query(); const sessionId = params.get("accessSessionId"); const actionId = params.get("actionId"); if (!sessionId || !actionId) return setMessage("유효한 단계 정보가 필요합니다."); if (action?.status === "COMPLETED" || completionInFlight.current) return; completionInFlight.current = true; setPending(true); try { await completePackageAction(sessionId, actionId); router.push("/package?accessSessionId=" + encodeURIComponent(sessionId)); } catch (reason) { setMessage(reason instanceof Error ? reason.message : "단계를 완료하지 못했습니다."); } finally { completionInFlight.current = false; setPending(false); } };
   const report = async () => { const params = query(); const sessionId = params.get("accessSessionId"); const actionId = params.get("actionId"); if (!sessionId || !actionId) return setMessage("유효한 단계 정보가 필요합니다."); const reason = window.prompt("문제가 발생한 이유를 입력해 주세요.") ?? ""; if (!reason) return; setPending(true); try { await reportPackageIssue(sessionId, actionId, reason); setMessage("문제가 신고되었습니다."); } catch (failure) { setMessage(failure instanceof Error ? failure.message : "문제를 신고하지 못했습니다."); } finally { setPending(false); } };
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] items-center px-[120px] lg:flex"><BrandLogo /></header>
@@ -83,7 +84,7 @@ export default function BackupPage() {
           <PersonCard />
 
           <div className="flex flex-col gap-3.5 pb-3.5 lg:gap-5 lg:py-5">
-            <ActionButton disabled={pending} onClick={() => void finish()}>완료하기</ActionButton>
+            <ActionButton disabled={pending || !action || action.status === "COMPLETED"} onClick={() => void finish()}>{action?.status === "COMPLETED" ? "완료됨" : "완료하기"}</ActionButton>
             <ActionButton disabled={pending} onClick={() => void report()} secondary>문제 신고하기</ActionButton>
             {message ? <p className="text-center text-sm text-[#584e4d]">{message}</p> : null}
           </div>

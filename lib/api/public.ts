@@ -108,7 +108,11 @@ export async function getPosthumousPackage(accessSessionId: string) {
   return unwrap(data);
 }
 export async function completePackageAction(accessSessionId: string, actionId: string) {
-  const { data } = await publicApiClient.post<ApiResponse<PackageActionResponse>>("/api/posthumous-packages/" + accessSessionId + "/actions/" + actionId + "/complete");
+  const { data } = await publicApiClient.post<ApiResponse<PackageActionResponse>>(
+    "/api/posthumous-packages/" + accessSessionId + "/actions/" + actionId + "/complete",
+    undefined,
+    { headers: { "Idempotency-Key": crypto.randomUUID() } },
+  );
   return unwrap(data);
 }
 export async function reportPackageIssue(accessSessionId: string, actionId: string, reason: string) {
