@@ -4,12 +4,14 @@ type FormFieldProps = ComponentPropsWithoutRef<"input"> & {
   id: string;
   label: ReactNode;
   error?: string;
+  inputClassName?: string;
 };
 
 export function FormField({
   id,
   label,
   error,
+  inputClassName = "",
   className = "",
   ...inputProps
 }: FormFieldProps) {
@@ -30,12 +32,12 @@ export function FormField({
           error
             ? "border-red-500 focus-visible:ring-red-500/25"
             : "border-transparent focus-visible:ring-[#43306d]/25"
-        }`}
+        } ${inputClassName}`}
         id={id}
         {...inputProps}
       />
       {error && (
-        <p className="px-2.5 text-xs text-red-600" id={errorId} role="alert">
+        <p className="form-field-error px-2.5 text-xs text-red-600" id={errorId} role="alert">
           {error}
         </p>
       )}

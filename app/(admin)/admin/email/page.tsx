@@ -1,10 +1,17 @@
+"use client";
+
 import Image from "next/image";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminAuditTabs } from "@/components/AdminAuditTabs";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
-import { getEmailAudit } from "@/lib/api";
+import { FormField } from "@/components/FormField";
+import { freezeReleaseCase, getEmailAudit, retryEmailDelivery } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/api/auth";
 
-type EmailRecipient = ReturnType<typeof getEmailAudit>["recipients"][number];
+type EmailAudit = Awaited<ReturnType<typeof getEmailAudit>>;
+type EmailRecipient = EmailAudit["recipients"][number];
 
 function maskEmail(email: string) {
   const [name, domain] = email.split("@");
@@ -40,7 +47,63 @@ function RecipientCard({ person }: { person: EmailRecipient }) {
 }
 
 export default function EmailPage() {
-  const audit = getEmailAudit();
+  const [audit, setAudit] = useState<EmailAudit>({ totalCount: 0, summary: ["발송 0", "반송 0"], recipients: [] });
+  const [caseId, setCaseId] = useState("");
+  const [caseIdError, setCaseIdError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [freezePending, setFreezePending] = useState(false);
+  const [freezeMessage, setFreezeMessage] = useState("");
+  const [freezeError, setFreezeError] = useState(false);
+  const load = useCallback(async (nextCaseId: string) => {
+    try {
+      setAudit(await getEmailAudit(nextCaseId));
+      setErrorMessage("");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "이메일 감사를 불러오지 못했습니다.");
+    }
+  }, []);
+  useEffect(() => {
+    const nextCaseId = new URLSearchParams(window.location.search).get("caseId") ?? "";
+    queueMicrotask(() => setCaseId(nextCaseId));
+    if (nextCaseId) queueMicrotask(() => void load(nextCaseId));
+  }, [load]);
+  const searchCase = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextCaseId = caseId.trim();
+
+    if (!nextCaseId) {
+      setCaseIdError("조회할 사건 ID를 입력해 주세요.");
+      return;
+    }
+
+    setCaseIdError("");
+    setCaseId(nextCaseId);
+    const url = new URL(window.location.href);
+    url.searchParams.set("caseId", nextCaseId);
+    window.history.replaceState(null, "", url);
+    await load(nextCaseId);
+  };
+  const retryFailed = async () => {
+    await Promise.all(audit.recipients.filter((item) => item.warning).map((item) => retryEmailDelivery(caseId, item.id)));
+    await load(caseId);
+  };
+  const freezeCase = async () => {
+    const nextCaseId = caseId.trim();
+    if (!nextCaseId || freezePending) return;
+
+    setFreezePending(true);
+    setFreezeMessage("");
+    setFreezeError(false);
+    try {
+      await freezeReleaseCase(nextCaseId);
+      setFreezeMessage("사건을 동결했습니다.");
+    } catch (error) {
+      setFreezeError(true);
+      setFreezeMessage(getApiErrorMessage(error, "사건을 동결하지 못했습니다."));
+    } finally {
+      setFreezePending(false);
+    }
+  };
 
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] grid-cols-3 items-center px-[120px] lg:grid">
@@ -57,11 +120,31 @@ export default function EmailPage() {
       <h1 className="mt-2.5 hidden text-xl font-bold leading-none lg:block">이메일 발송 감사</h1>
 
       <div className="mt-7 flex w-full flex-col gap-[22px] lg:mt-[50px] lg:w-[460px]">
+        <form className="flex w-full flex-col gap-3" onSubmit={searchCase}>
+          <FormField
+            autoComplete="off"
+            error={caseIdError}
+            id="email-audit-case-id"
+            label="사건 ID"
+            name="caseId"
+            onChange={(event) => {
+              setCaseId(event.currentTarget.value);
+              setCaseIdError("");
+            }}
+            placeholder="조회할 사건 ID를 입력해 주세요"
+            value={caseId}
+          />
+          <Button type="submit">이메일 발송 감사 조회하기</Button>
+        </form>
+        {errorMessage && <p className="text-center text-sm text-red-700" role="alert">{errorMessage}</p>}
         <section className="flex flex-col gap-3.5">
           <h2 className="text-base font-bold leading-none lg:text-lg">수신자 총 {audit.totalCount}명</h2>
           <div className="flex gap-2.5">
-            <span className="rounded-[14px] bg-[#fbfafd] px-4 py-2.5 text-[13px] font-medium leading-none lg:rounded-[30px] lg:px-5 lg:py-3 lg:text-[15px]">발송 1</span>
-            <span className="rounded-[14px] bg-[#fbfafd] px-4 py-2.5 text-[13px] font-medium leading-none lg:rounded-[30px] lg:px-5 lg:py-3 lg:text-[15px]">반송 2</span>
+            {audit.summary.map((item) => (
+              <span className="rounded-[14px] bg-[#fbfafd] px-4 py-2.5 text-[13px] font-medium leading-none lg:rounded-[30px] lg:px-5 lg:py-3 lg:text-[15px]" key={item}>
+                {item}
+              </span>
+            ))}
           </div>
         </section>
 
@@ -73,11 +156,12 @@ export default function EmailPage() {
         </div>
 
         <div className="flex flex-col gap-6 lg:gap-[22px] lg:pt-5">
-          <Button type="button">재시도 정책 실행하기</Button>
+          <Button disabled={!caseId || !audit.recipients.some((item) => item.warning)} onClick={retryFailed} type="button">재시도 정책 실행하기</Button>
           <div className="grid grid-cols-2 gap-[22px] lg:grid-cols-1">
-            <button className="flex min-h-11 items-center justify-center rounded-[14px] bg-[#7f62b8] px-5 py-3.5 text-sm font-medium leading-none text-[#fbfafd] transition-colors hover:bg-[#7055a4] lg:text-base" type="button">사건 동결하기</button>
+            <button className="flex min-h-11 items-center justify-center rounded-[14px] bg-[#7f62b8] px-5 py-3.5 text-sm font-medium leading-none text-[#fbfafd] transition-colors enabled:hover:bg-[#7055a4] disabled:cursor-not-allowed disabled:opacity-60 lg:text-base" disabled={!caseId.trim() || freezePending} onClick={() => void freezeCase()} type="button">{freezePending ? "사건 동결 중..." : "사건 동결하기"}</button>
             <button className="flex min-h-11 items-center justify-center rounded-[14px] bg-[#e2dafa] px-5 py-3.5 text-sm font-medium leading-none text-[#43306d] transition-colors hover:bg-[#d6caef] lg:text-base" type="button">파트너 문의하기</button>
           </div>
+          {freezeMessage ? <ActionFeedback tone={freezeError ? "error" : "success"}>{freezeMessage}</ActionFeedback> : null}
         </div>
       </div>
     </section>

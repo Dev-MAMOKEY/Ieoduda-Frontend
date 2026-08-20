@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Button } from "@/components/Button";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage } from "@/lib/api/auth";
@@ -25,6 +26,7 @@ import {
   updatePlanItem,
 } from "@/lib/api/plan";
 import type {
+  ApiId,
   ConversationMessage,
   MessageHistoryResponse,
   PlanItem,
@@ -35,6 +37,7 @@ type PlanItemCardProps = {
   item: PlanItem;
   displayOrder: number;
   busy: boolean;
+  sealed: boolean;
   onApprove: () => void;
   onDelete: () => void;
   onSave: (request: PlanItemUpdateRequest) => Promise<boolean>;
@@ -104,7 +107,7 @@ function getMessageContent(message: ConversationMessage) {
 }
 
 // 계획 카드의 조회 상태와 인라인 편집 상태를 한 컴포넌트에서 전환합니다.
-function PlanItemCard({ item, displayOrder, busy, onApprove, onDelete, onSave }: PlanItemCardProps) {
+function PlanItemCard({ item, displayOrder, busy, sealed, onApprove, onDelete, onSave }: PlanItemCardProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<PlanItemUpdateRequest>({
     targetName: item.targetName ?? "",
@@ -176,32 +179,43 @@ function PlanItemCard({ item, displayOrder, busy, onApprove, onDelete, onSave }:
           <button className="h-10 rounded-[20px] bg-white text-sm" disabled={busy} onClick={() => setEditing(false)} type="button">취소</button>
         </> : <>
           <button className="min-h-[48px] rounded-[14px] bg-[#3c2b62] px-5 py-[14px] text-sm font-medium leading-none text-[#fbfafd] disabled:opacity-50 md:text-base" disabled={busy || item.status === "APPROVED"} onClick={onApprove} type="button">{item.status === "APPROVED" ? "승인 완료" : "승인하기"}</button>
-          <button className="min-h-[48px] rounded-[14px] bg-[#7f62b8] px-5 py-[14px] text-sm font-medium leading-none text-[#fbfafd] disabled:opacity-50 md:text-base" disabled={busy} onClick={() => setEditing(true)} type="button">수정하기</button>
+          <button className="min-h-[48px] rounded-[14px] bg-[#7f62b8] px-5 py-[14px] text-sm font-medium leading-none text-[#fbfafd] disabled:cursor-not-allowed disabled:opacity-50 md:text-base" disabled={busy || sealed} onClick={() => setEditing(true)} type="button">수정하기</button>
         </>}
       </div>
+      {sealed ? <p className="text-center text-xs font-medium text-[#796b6c] md:text-sm" role="status">봉인된 계획입니다</p> : null}
     </article>
   );
 }
 
 export default function LifeAreaPage() {
   const router = useRouter();
-  const [planId, setPlanId] = useState<number | null>(null);
-  const [conversationId, setConversationId] = useState<number | null>(null);
+  const [planId, setPlanId] = useState<ApiId | null>(null);
+  const [planSealed, setPlanSealed] = useState(false);
+  const [conversationId, setConversationId] = useState<ApiId | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [items, setItems] = useState<PlanItem[]>([]);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
-  const [busyItemId, setBusyItemId] = useState<number | null>(null);
+  const [busyItemId, setBusyItemId] = useState<ApiId | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<ApiId | null>(null);
+  const [openedFromPlanHome, setOpenedFromPlanHome] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const messageInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const fromPlanHome = new URLSearchParams(window.location.search).get("from") === "plan";
+    queueMicrotask(() => setOpenedFromPlanHome(fromPlanHome));
+  }, []);
+
+  useEffect(() => {
     let active = true;
     // 저장된 conversationId가 있으면 백엔드 이력을 복구하고, 없거나 무효할 때만 새 세션을 만듭니다.
     getMyPlan().then(async (plan) => {
+      setPlanSealed(plan.status === "SEALED");
       const areas = await getLifeAreas(plan.planId);
-      let nextConversationId = getStoredConversationId(plan.planId);
+      let nextConversationId: ApiId | null = getStoredConversationId(plan.planId);
+      const hadStoredConversationId = nextConversationId != null;
       let history: MessageHistoryResponse | undefined;
 
       if (nextConversationId != null) {
@@ -226,8 +240,11 @@ export default function LifeAreaPage() {
       setConversationId(nextConversationId);
       const planItems = areas.flatMap((area) => area.items);
       const nextMessages = history?.messages ?? [];
-      // 계획 홈의 수정 버튼으로 진입하면 전체 계획을 최신 채팅 결과처럼 바로 보여줍니다.
-      const showPlans = new URLSearchParams(window.location.search).get("showPlans") === "true";
+      const searchParams = new URLSearchParams(window.location.search);
+      // 명시적인 전체 보기이거나, 계획 홈에서 진입했는데 복구할 로컬 대화 ID가 없으면
+      // 서버에 저장된 전체 계획을 최신 채팅 결과처럼 바로 보여줍니다.
+      const showPlans = searchParams.get("showPlans") === "true"
+        || (searchParams.get("from") === "plan" && !hadStoredConversationId);
       setMessages(showPlans && planItems.length > 0 ? [...nextMessages, {
         messageId: -Date.now(),
         role: "ASSISTANT",
@@ -256,7 +273,7 @@ export default function LifeAreaPage() {
     setItems(areas.flatMap((area) => area.items));
   };
 
-  const handleApprove = async (itemId: number) => {
+  const handleApprove = async (itemId: ApiId) => {
     if (planId == null || busyItemId != null) return;
     setBusyItemId(itemId); setErrorMessage("");
     try { replaceItem(await approvePlanItem(planId, itemId)); }
@@ -268,7 +285,7 @@ export default function LifeAreaPage() {
     finally { setBusyItemId(null); }
   };
 
-  const handleUpdate = async (itemId: number, request: PlanItemUpdateRequest) => {
+  const handleUpdate = async (itemId: ApiId, request: PlanItemUpdateRequest) => {
     if (planId == null || busyItemId != null) return false;
     setBusyItemId(itemId); setErrorMessage("");
     try {
@@ -283,8 +300,9 @@ export default function LifeAreaPage() {
     finally { setBusyItemId(null); }
   };
 
-  const handleDelete = async (itemId: number) => {
-    if (planId == null || busyItemId != null || !window.confirm("이 계획을 완전히 삭제할까요?")) return;
+  const handleDelete = async (itemId: ApiId) => {
+    if (planId == null || busyItemId != null) return;
+    setDeleteTargetId(null);
     setBusyItemId(itemId); setErrorMessage("");
     try { await deletePlanItem(planId, itemId); setItems((current) => current.filter((item) => item.itemId !== itemId)); }
     catch (error) {
@@ -346,30 +364,37 @@ export default function LifeAreaPage() {
   )?.messageId;
 
   return <PageContainer className="gap-3 scroll-pb-[180px] pb-0 pt-[70px] md:!px-[120px] md:!pt-0">
-    <PageHeader title="대화 작성" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="items-center px-1 py-2 md:px-0 md:py-0" />
+    <PageHeader title="대화 작성" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="mx-auto max-w-[342px] items-center px-1 py-2 md:max-w-[460px] md:px-0 md:py-0" />
 
-    <aside className="flex w-full flex-col items-start rounded-[16px] bg-[#f3f3ff] px-5 pb-[22px] pt-[18px] md:hidden">
-      <div className="flex flex-col gap-2.5">
-        <Image src="/icons/life-area-warning.svg" alt="" width={24} height={24} className="size-6" />
-        <h2 className="text-sm font-bold leading-none text-[#43306d]">중요한 내용</h2>
-        <p className="text-xs font-medium leading-normal text-[#796b6c]">비밀번호, 인증번호 같은 민감한 내용은 적지 마세요.<br />위치 유형만 알려주세요.</p>
-      </div>
-    </aside>
-
-    <aside className="mx-auto hidden w-[342px] items-center justify-center rounded-[16px] bg-[#fbfafd] px-6 py-4 text-center md:flex">
-      <p className="text-lg font-bold leading-normal text-[#43306d]">비밀번호·PIN·인증번호는 적지 마세요.<br />위치 유형만 알려주세요.</p>
-    </aside>
+    <div className="sticky top-0 z-10 mx-auto w-full max-w-[342px] py-1 md:max-w-[460px] md:py-3">
+      <aside className="flex w-full items-start rounded-[16px] bg-[#f3f3ff] px-5 pb-[22px] pt-[18px] md:items-center md:justify-center md:bg-[#fbfafd] md:px-6 md:py-4 md:text-center">
+        <div className="flex flex-col gap-2.5 md:block">
+          <Image src="/icons/life-area-warning.svg" alt="" width={24} height={24} className="size-6 md:hidden" />
+          <h2 className="text-sm font-bold leading-none text-[#43306d] md:hidden">중요한 내용</h2>
+          <p className="text-xs font-medium leading-normal text-[#796b6c] md:text-lg md:font-bold md:text-[#43306d]">비밀번호, PIN, 인증번호 같은 민감한 내용은 적지 마세요.<br />위치 유형만 알려주세요.</p>
+        </div>
+      </aside>
+    </div>
 
     <div className="mx-auto flex w-full flex-1 flex-col items-center pt-2 md:max-w-[460px] md:pt-[30px]">
       <div className="flex w-full flex-col gap-3 md:gap-10">
-        {messages.length === 0 && <div className="self-start rounded-br-[14px] rounded-bl-[14px] rounded-tr-[14px] bg-[#fbfafd] px-[22px] py-[18px] text-[13px] font-medium leading-normal text-[#43306d] md:text-[15px]">대화하듯 편하게 계획을 말씀해 주세요.</div>}
+        <div className="self-start rounded-br-[14px] rounded-bl-[14px] rounded-tr-[14px] bg-[#fbfafd] px-[22px] py-[18px] text-[13px] font-medium leading-normal text-[#43306d] md:text-[15px]">대화하듯 편하게 계획을 말씀해 주세요.</div>
         {messages.map((entry) => {
           return <section className="flex w-full flex-col gap-[22px] md:gap-10" key={entry.messageId}>
             <div className={`whitespace-pre-wrap px-[22px] py-[18px] text-[13px] font-medium leading-normal md:text-[15px] ${entry.role === "USER" ? "self-end rounded-bl-[14px] rounded-br-[14px] rounded-tl-[14px] bg-[#43306d] text-[#fbfafd] md:w-full md:px-[30px] md:py-5" : "max-w-[85%] self-start rounded-bl-[14px] rounded-br-[14px] rounded-tr-[14px] bg-[#fbfafd] text-[#43306d]"}`}>{getMessageContent(entry)}</div>
             {entry.messageId === latestResultMessageId && items.length > 0 && <>
-              <div className="grid w-full gap-[22px]">{items.map((item, index) => <PlanItemCard busy={busyItemId === item.itemId} displayOrder={index + 1} item={item} key={item.itemId} onApprove={() => handleApprove(item.itemId)} onDelete={() => handleDelete(item.itemId)} onSave={(request) => handleUpdate(item.itemId, request)} />)}</div>
+              <div className="grid w-full gap-[22px]">{items.map((item, index) => <PlanItemCard busy={busyItemId === item.itemId} displayOrder={index + 1} item={item} key={item.itemId} sealed={planSealed} onApprove={() => handleApprove(item.itemId)} onDelete={() => setDeleteTargetId(item.itemId)} onSave={(request) => handleUpdate(item.itemId, request)} />)}</div>
               <div className="self-start rounded-bl-[14px] rounded-br-[14px] rounded-tr-[14px] bg-[#fbfafd] px-[22px] py-[18px] text-[13px] font-medium leading-normal text-[#43306d] md:text-[15px]">역할 등록 순서가 맞으면 하단의 버튼을 눌러주세요</div>
-              <Button onClick={handleRegisterRecipients} type="button">역할 담당자 등록하기</Button>
+              <div className="flex w-full flex-col gap-3 md:gap-4">
+                <Button onClick={handleRegisterRecipients} type="button">
+                  역할 담당자 등록하기
+                </Button>
+                {openedFromPlanHome ? (
+                  <Button className="!bg-[#7f62b8] hover:!bg-[#765aaa]" onClick={() => router.push("/plan")} type="button">
+                    홈 화면으로 이동하기
+                  </Button>
+                ) : null}
+              </div>
             </>}
           </section>;
         })}
@@ -385,5 +410,14 @@ export default function LifeAreaPage() {
         <button aria-label="메시지 보내기" className="ml-3 shrink-0 disabled:cursor-not-allowed" disabled={pending || !message.trim() || planId == null || conversationId == null} type="submit"><Image src="/icons/life-area-send.svg" alt="" width={24} height={24} className="size-[22px] md:size-6" /></button>
       </form>
     </div>
+    {deleteTargetId != null && (
+      <ConfirmationDialog
+        confirmLabel="삭제하기"
+        description={<>삭제한 계획은 다시 복구할 수 없어요.<br />정말 삭제할 계획인지 확인해 주세요.</>}
+        onCancel={() => setDeleteTargetId(null)}
+        onConfirm={() => void handleDelete(deleteTargetId)}
+        title="이 계획을 삭제할까요?"
+      />
+    )}
   </PageContainer>;
 }

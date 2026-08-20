@@ -1,13 +1,14 @@
 // 화면에서 사용할 회원가입, 로그인, 인증 복구 및 로그아웃 기능을 제공합니다.
 
 import axios from "axios";
-import { apiClient, refreshTokens } from "./client";
+import { apiClient, publicApiClient, refreshTokens } from "./client";
 import type {
   ApiResponse,
   LoginRequest,
   SignupRequest,
   SignupResponse,
   TokenResponse,
+  UserRole,
 } from "./auth-types";
 import {
   clearTokens,
@@ -17,9 +18,34 @@ import {
 } from "./token-storage";
 import { clearAllStoredConversationIds } from "./conversation-storage";
 
+function normalizeUserRole(value: unknown): UserRole | null {
+  if (typeof value !== "string") return null;
+
+  const role = value.toUpperCase();
+  return role === "USER" || role === "ADMIN" || role === "EXTERNAL"
+    ? role
+    : null;
+}
+
+export function getAccessTokenRole(accessToken = getAccessToken()) {
+  if (!accessToken || typeof atob === "undefined") return null;
+
+  try {
+    const encodedPayload = accessToken.split(".")[1];
+    if (!encodedPayload) return null;
+
+    const base64 = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedBase64 = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+    const payload = JSON.parse(atob(paddedBase64)) as { role?: unknown };
+    return normalizeUserRole(payload.role);
+  } catch {
+    return null;
+  }
+}
+
 export async function signup(request: SignupRequest) {
   // 백엔드 회원가입 API에 검증된 이름, 이메일, 비밀번호 정보를 전달합니다.
-  const { data } = await apiClient.post<ApiResponse<SignupResponse>>(
+  const { data } = await publicApiClient.post<ApiResponse<SignupResponse>>(
     "/auth/signup",
     request,
   );
@@ -28,12 +54,18 @@ export async function signup(request: SignupRequest) {
 
 export async function login(request: LoginRequest) {
   // 로그인 성공 응답으로 받은 두 토큰을 Local Storage에 저장합니다.
-  const { data } = await apiClient.post<ApiResponse<TokenResponse>>(
+  const { data } = await publicApiClient.post<ApiResponse<TokenResponse>>(
     "/auth/login",
     request,
   );
   setTokens(data.data.accessToken, data.data.refreshToken);
-  return data.data;
+  return {
+    ...data.data,
+    role:
+      normalizeUserRole(data.data.role) ??
+      getAccessTokenRole(data.data.accessToken) ??
+      undefined,
+  };
 }
 
 export async function restoreAuthentication() {

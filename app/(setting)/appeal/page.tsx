@@ -1,10 +1,23 @@
 "use client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { Button } from "@/components/Button";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
+import { getApiErrorMessage } from "@/lib/api/auth";
+import {
+  getMyPlan,
+  getReleaseSettings,
+  registerDisputeContact,
+  registerSelfWarningEmail,
+  resendDisputeContactVerificationEmail,
+  updateDisputeContact,
+  updateReleasePolicy,
+} from "@/lib/api/plan";
+import type { ApiId } from "@/lib/api/plan-types";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 const inputClass =
   "min-h-[48px] w-full rounded-[14px] border bg-white px-4 py-[14px] text-[13px] font-medium leading-none text-[#584e4d] outline-none placeholder:text-[#a99d9e] focus-visible:ring-2 focus-visible:ring-[#43306d]/25 md:px-5 md:py-4 md:text-[15px]";
@@ -35,12 +48,91 @@ export default function AppealPage() {
   const router = useRouter();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [selfVerified, setSelfVerified] = useState(false);
+  const [selfEmail, setSelfEmail] = useState("");
+  const [planId, setPlanId] = useState<ApiId | null>(null);
+  const [contactId, setContactId] = useState<ApiId | null>(null);
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactVerified, setContactVerified] = useState(false);
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState("");
+  const [contactVerificationPending, setContactVerificationPending] = useState(false);
+  const [contactVerificationMessage, setContactVerificationMessage] = useState("");
+  const [submissionPending, setSubmissionPending] = useState(false);
+  const [submissionMessage, setSubmissionMessage] = useState("");
+  const [settingsLoadError, setSettingsLoadError] = useState("");
+
+  useEffect(() => {
+    getMyPlan()
+      .then(async (plan) => {
+        setPlanId(plan.planId);
+        const settings = await getReleaseSettings(plan.planId);
+        setSelfEmail(settings.selfWarningEmail ?? "");
+        setSelfVerified(settings.selfWarningEmailVerified);
+        setContactId(settings.disputeContact?.contactId ?? null);
+        setContactName(settings.disputeContact?.name ?? "");
+        setContactEmail(settings.disputeContact?.email ?? "");
+        setContactVerified(settings.disputeContact?.verified ?? false);
+      })
+      .catch((error: unknown) => {
+        setSettingsLoadError(getApiErrorMessage(error, "기존 대기·이의제기 정보를 불러오지 못했습니다. 입력하기 전에 잠시 후 다시 확인해 주세요."));
+      });
+  }, []);
 
   const clearError = (name: FieldName) => {
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
   };
 
-  const handleVerifyEmail = (event: MouseEvent<HTMLButtonElement>) => {
+  const handleVerifyContactEmail = async (event: MouseEvent<HTMLButtonElement>) => {
+    const form = event.currentTarget.form;
+    const data = new FormData(form ?? undefined);
+    const name = String(data.get("contactName") ?? "").trim();
+    const email = String(data.get("contactEmail") ?? "").trim();
+    const errors: FieldErrors = {};
+
+    if (!name) errors.contactName = "이의 제기 연락처의 이름을 입력해 주세요.";
+    if (!email) errors.contactEmail = "이의 제기 연락처의 이메일을 입력해 주세요.";
+    else if (!emailPattern.test(email)) errors.contactEmail = "올바른 이메일 형식으로 입력해 주세요.";
+
+    setFieldErrors((current) => ({ ...current, ...errors }));
+    if (Object.keys(errors).length > 0) {
+      setContactVerified(false);
+      return;
+    }
+
+    setContactVerificationPending(true);
+    setContactVerificationMessage("");
+    try {
+      const currentPlanId = planId ?? (await getMyPlan()).planId;
+      setPlanId(currentPlanId);
+      const settings = await getReleaseSettings(currentPlanId);
+      const currentContact = settings.disputeContact;
+      const isSameContact = currentContact?.name === name
+        && currentContact.email.toLowerCase() === email.toLowerCase();
+
+      if (currentContact && isSameContact) {
+        await resendDisputeContactVerificationEmail(currentContact.contactId);
+        setContactId(currentContact.contactId);
+      } else {
+        const result = currentContact
+          ? await updateDisputeContact(currentPlanId, currentContact.contactId, name, email)
+          : await registerDisputeContact(currentPlanId, name, email);
+        setContactId(result.contactId ?? currentContact?.contactId ?? null);
+      }
+
+      setContactName(name);
+      setContactEmail(email);
+      setContactVerified(false);
+      setContactVerificationMessage("검증 메일을 보냈어요. 이메일의 링크를 눌러 검증을 완료해 주세요.");
+    } catch (error) {
+      setContactVerified(false);
+      setContactVerificationMessage(getApiErrorMessage(error, "검증 메일을 보내지 못했습니다."));
+    } finally {
+      setContactVerificationPending(false);
+    }
+  };
+
+  const handleVerifyEmail = async (event: MouseEvent<HTMLButtonElement>) => {
     const form = event.currentTarget.form;
     const email = String(new FormData(form ?? undefined).get("selfEmail") ?? "").trim();
     if (!email) {
@@ -54,10 +146,26 @@ export default function AppealPage() {
       return;
     }
     clearError("selfEmail");
-    setSelfVerified(true);
+    setVerificationPending(true);
+    setVerificationMessage("");
+    try {
+      const currentPlanId = planId ?? (await getMyPlan()).planId;
+      setPlanId(currentPlanId);
+      const result = await registerSelfWarningEmail(currentPlanId, email);
+      setSelfEmail(result.email);
+      setSelfVerified(result.verified);
+      setVerificationMessage(result.emailSent
+        ? "검증 메일을 보냈어요. 이메일의 링크를 눌러 검증을 완료해 주세요."
+        : "이메일을 등록했지만 검증 메일 발송 여부를 확인하지 못했어요.");
+    } catch (error) {
+      setSelfVerified(false);
+      setVerificationMessage(getApiErrorMessage(error, "검증 메일을 보내지 못했습니다."));
+    } finally {
+      setVerificationPending(false);
+    }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const selfEmail = String(data.get("selfEmail") ?? "").trim();
@@ -69,7 +177,6 @@ export default function AppealPage() {
 
     if (!selfEmail) errors.selfEmail = "본인 이메일을 입력해 주세요.";
     else if (!emailPattern.test(selfEmail)) errors.selfEmail = "올바른 이메일 형식으로 입력해 주세요.";
-    else if (!selfVerified) errors.selfEmail = "먼저 검증 메일을 보내 주세요.";
     if (!contactName) errors.contactName = "이의 제기 연락처의 이름을 입력해 주세요.";
     if (!contactEmail) errors.contactEmail = "이의 제기 연락처의 이메일을 입력해 주세요.";
     else if (!emailPattern.test(contactEmail)) errors.contactEmail = "올바른 이메일 형식으로 입력해 주세요.";
@@ -79,7 +186,56 @@ export default function AppealPage() {
     }
 
     setFieldErrors(errors);
-    if (Object.keys(errors).length === 0) router.push("/appeal/edit");
+    if (Object.keys(errors).length > 0) return;
+
+    setSubmissionPending(true);
+    setSubmissionMessage("");
+    try {
+      const currentPlanId = planId ?? (await getMyPlan()).planId;
+      setPlanId(currentPlanId);
+      const latestSettings = await getReleaseSettings(currentPlanId);
+      const registeredEmail = latestSettings.selfWarningEmail?.trim().toLowerCase() ?? "";
+      const emailVerified = latestSettings.selfWarningEmailVerified
+        && registeredEmail === selfEmail.toLowerCase();
+
+      setSelfVerified(emailVerified);
+      if (!emailVerified) {
+        setFieldErrors((current) => ({
+          ...current,
+          selfEmail: "본인 경고 이메일의 검증 링크를 눌러 확인을 완료해 주세요.",
+        }));
+        setVerificationMessage("이메일 확인이 완료된 후 다시 등록해 주세요.");
+        setSubmissionPending(false);
+        return;
+      }
+
+      const registeredContact = latestSettings.disputeContact;
+      const contactMatches = registeredContact?.name === contactName
+        && registeredContact.email.trim().toLowerCase() === contactEmail.toLowerCase();
+      const isContactVerified = registeredContact?.verified === true && contactMatches;
+
+      setContactVerified(isContactVerified);
+      if (!isContactVerified) {
+        setFieldErrors((current) => ({
+          ...current,
+          contactEmail: registeredContact?.verified
+            ? "검증한 이의 제기 연락처와 현재 입력값이 달라요. 검증 메일을 다시 보내 주세요."
+            : "이의 제기 연락처 이메일의 검증 링크를 눌러 확인을 완료해 주세요.",
+        }));
+        setContactVerificationMessage("이메일 확인이 완료된 후 다시 등록해 주세요.");
+        setSubmissionPending(false);
+        return;
+      }
+
+      const latestContactId = registeredContact.contactId ?? contactId;
+      setContactId(latestContactId);
+      await updateReleasePolicy(currentPlanId, waitingPeriod);
+      showSnackbarAfterNavigation("대기·이의제기 설정이 저장되었습니다.");
+      router.push("/profile");
+    } catch (error) {
+      setSubmissionMessage(getApiErrorMessage(error, "대기 이의제기 정보를 저장하지 못했습니다."));
+      setSubmissionPending(false);
+    }
   };
 
   return (
@@ -90,11 +246,11 @@ export default function AppealPage() {
       <PageHeader
         backHref="/profile"
         backLabel="설정 화면으로 돌아가기"
-        className="md:hidden"
+        className="mx-auto max-w-[342px] md:max-w-[460px]"
         title="대기 이의제기"
       />
-      <PageHeader className="hidden md:flex" title="대기 이의제기" />
       <div className="mx-auto flex w-full max-w-[342px] flex-col gap-5 pt-5 md:max-w-[460px] md:gap-10 md:pt-[50px]">
+        {settingsLoadError ? <ActionFeedback tone="error">{settingsLoadError}</ActionFeedback> : null}
         <form className="contents" noValidate onSubmit={handleSubmit}>
         <section className="flex flex-col gap-6 md:gap-[22px] md:pb-[22px]">
           <div className="flex flex-col gap-3.5 md:gap-[22px] md:pb-[14px]">
@@ -103,12 +259,13 @@ export default function AppealPage() {
               <span className="text-sm font-bold text-[#796b6c] md:text-base">{selfVerified ? "검증 완료" : "검증 필요"}</span>
             </div>
             <div className="flex flex-col gap-2">
-              <input aria-invalid={Boolean(fieldErrors.selfEmail)} className={`${inputClass} ${fieldErrors.selfEmail ? "border-red-500" : "border-transparent"}`} name="selfEmail" onChange={() => { clearError("selfEmail"); setSelfVerified(false); }} placeholder="이메일을 입력해 주세요" type="email" />
-              {fieldErrors.selfEmail && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.selfEmail}</p>}
+              <input aria-invalid={Boolean(fieldErrors.selfEmail)} className={`${inputClass} ${fieldErrors.selfEmail ? "border-red-500" : "border-transparent"}`} name="selfEmail" onChange={(event) => { setSelfEmail(event.target.value); clearError("selfEmail"); setSelfVerified(false); setVerificationMessage(""); }} placeholder="이메일을 입력해 주세요" type="email" value={selfEmail} />
+              {fieldErrors.selfEmail && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.selfEmail}</p>}
+              {verificationMessage && <p className="px-2.5 text-xs font-medium text-[#796b6c]" role="status">{verificationMessage}</p>}
             </div>
           </div>
-          <Button className="cursor-pointer text-sm hover:!bg-[#37275a] md:text-base" onClick={handleVerifyEmail} type="button">
-            검증 메일 보내기
+          <Button className="cursor-pointer text-sm hover:!bg-[#37275a] md:text-base" disabled={verificationPending} onClick={handleVerifyEmail} type="button">
+            {verificationPending ? "검증 메일 보내는 중..." : "검증 메일 보내기"}
           </Button>
         </section>
         <section className="flex flex-col gap-6 pb-3 md:gap-6 md:pb-[14px]">
@@ -116,20 +273,23 @@ export default function AppealPage() {
             <div className="flex flex-col gap-3.5 md:gap-[22px]">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-[#43306d] md:text-lg">이의 제기 연락처</h2>
-                <span className="text-sm font-bold text-[#796b6c] md:text-base">검증 필요</span>
+                <span className="text-sm font-bold text-[#796b6c] md:text-base">{contactVerified ? "검증 완료" : "검증 필요"}</span>
               </div>
-              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactName)} className={`${inputClass} ${fieldErrors.contactName ? "border-red-500" : "border-transparent"}`} name="contactName" onChange={() => clearError("contactName")} placeholder="이름을 입력해 주세요" />{fieldErrors.contactName && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactName}</p>}</div>
-              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactEmail)} className={`${inputClass} ${fieldErrors.contactEmail ? "border-red-500" : "border-transparent"}`} name="contactEmail" onChange={() => clearError("contactEmail")} placeholder="이메일을 입력해 주세요" type="email" />{fieldErrors.contactEmail && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactEmail}</p>}</div>
+              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactName)} className={`${inputClass} ${fieldErrors.contactName ? "border-red-500" : "border-transparent"}`} name="contactName" onChange={(event) => { setContactName(event.target.value); clearError("contactName"); setContactVerified(false); setContactVerificationMessage(""); }} placeholder="이름을 입력해 주세요" value={contactName} />{fieldErrors.contactName && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactName}</p>}</div>
+              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactEmail)} className={`${inputClass} ${fieldErrors.contactEmail ? "border-red-500" : "border-transparent"}`} name="contactEmail" onChange={(event) => { setContactEmail(event.target.value); clearError("contactEmail"); setContactVerified(false); setContactVerificationMessage(""); }} placeholder="이메일을 입력해 주세요" type="email" value={contactEmail} />{fieldErrors.contactEmail && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactEmail}</p>}{contactVerificationMessage && <p className="px-2.5 text-xs font-medium text-[#796b6c]" role="status">{contactVerificationMessage}</p>}</div>
             </div>
+            <Button className="cursor-pointer text-sm hover:!bg-[#37275a] md:text-base" disabled={contactVerificationPending || contactVerified} onClick={handleVerifyContactEmail} type="button">
+              {contactVerificationPending ? "검증 메일 보내는 중..." : contactVerified ? "검증 완료" : "검증 메일 보내기"}
+            </Button>
             <div className="flex flex-col gap-3.5 md:gap-[22px]">
               <h2 className="text-base font-bold text-[#43306d] md:text-lg">대기 기간</h2>
-              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.waitingPeriod)} className={`${inputClass} ${fieldErrors.waitingPeriod ? "border-red-500" : "border-transparent"}`} inputMode="numeric" max={30} min={7} name="waitingPeriod" onChange={() => clearError("waitingPeriod")} placeholder="대기 기간을 입력해 주세요 (7-30일)" step={1} type="number" />{fieldErrors.waitingPeriod && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.waitingPeriod}</p>}</div>
+              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.waitingPeriod)} className={`${inputClass} ${fieldErrors.waitingPeriod ? "border-red-500" : "border-transparent"}`} inputMode="numeric" max={30} min={7} name="waitingPeriod" onChange={() => clearError("waitingPeriod")} placeholder="대기 기간을 입력해 주세요 (7-30일)" step={1} type="number" />{fieldErrors.waitingPeriod && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.waitingPeriod}</p>}</div>
             </div>
           </div>
         </section>
-        <Button className="cursor-pointer text-sm hover:!bg-[#37275a] md:bg-[#7f62b8] md:text-base md:hover:!bg-[#765aaa]" type="submit">
-          <span className="md:hidden">대기 이의제기 보내기</span>
-          <span className="hidden md:inline">대기 이의제기 등록하기</span>
+        {submissionMessage && <p className="text-center text-sm text-red-700" role="alert">{submissionMessage}</p>}
+        <Button className="cursor-pointer !bg-[#7f62b8] text-sm hover:!bg-[#765aaa] md:text-base" disabled={submissionPending || verificationPending || contactVerificationPending} type="submit">
+          {submissionPending ? "등록 중..." : "대기 이의제기 등록하기"}
         </Button>
         </form>
         <div className="flex flex-col gap-[22px]">

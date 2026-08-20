@@ -10,7 +10,8 @@ import { PageContainer } from "@/components/PageContainer";
 import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage } from "@/lib/api/auth";
 import { confirmPlanOrder, getMyPlan, getOrderCheck, reorderPlanItems } from "@/lib/api/plan";
-import type { OrderCheckItem } from "@/lib/api/plan-types";
+import type { ApiId, OrderCheckItem } from "@/lib/api/plan-types";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 // 실행 순서 카드 하단의 담당자·대기 기간·승인 상태를 기존 디자인으로 표시합니다.
 function Detail({ label, value }: { label: string; value: string }) {
@@ -34,13 +35,29 @@ function getAcceptanceLabel(status: OrderCheckItem["acceptanceStatus"]) {
   return "미승인";
 }
 
+function isMissingBackupMessage(message: string | null | undefined) {
+  if (!message) return false;
+  const normalized = message.toLowerCase().replace(/\s+/g, " ");
+  const mentionsBackup = normalized.includes("대체 담당자") || normalized.includes("backup");
+  const mentionsMissing = /없|미등록|부재|누락|not registered|missing|absent/.test(normalized);
+  return mentionsBackup && mentionsMissing;
+}
+
+function hasOrderConflict(item: OrderCheckItem) {
+  return item.conflict && !isMissingBackupMessage(item.conflictMessage);
+}
+
+function hasBackupWarning(item: OrderCheckItem) {
+  return item.warning || isMissingBackupMessage(item.warningMessage) || isMissingBackupMessage(item.conflictMessage);
+}
+
 export default function OrderPage() {
   const router = useRouter();
-  const [planId, setPlanId] = useState<number | null>(null);
+  const [planId, setPlanId] = useState<ApiId | null>(null);
   const [items, setItems] = useState<OrderCheckItem[]>([]);
   const [hasConflict, setHasConflict] = useState(false);
-  const [draggedId, setDraggedId] = useState<number | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [draggedId, setDraggedId] = useState<ApiId | null>(null);
+  const [selectedId, setSelectedId] = useState<ApiId | null>(null);
   const [pending, setPending] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -55,16 +72,16 @@ export default function OrderPage() {
       setPlanId(plan.planId);
       setItems(order.items);
       itemsRef.current = order.items;
-      setHasConflict(order.hasConflict);
+      setHasConflict(order.items.some(hasOrderConflict));
     }).catch((error) => setErrorMessage(getApiErrorMessage(error, "실행 순서를 불러오지 못했습니다.")));
   }, []);
 
   // 드래그 중에는 화면 순서만 변경하고 서버 요청은 보내지 않습니다.
-  const moveItem = (targetId: number) => {
-    if (draggedId == null || draggedId === targetId) return;
+  const moveItem = (targetId: string) => {
+    if (draggedId == null || String(draggedId) === targetId) return;
     const next = [...itemsRef.current];
-    const from = next.findIndex((item) => item.itemId === draggedId);
-    const to = next.findIndex((item) => item.itemId === targetId);
+    const from = next.findIndex((item) => String(item.itemId) === String(draggedId));
+    const to = next.findIndex((item) => String(item.itemId) === targetId);
     if (from < 0 || to < 0) return;
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
@@ -80,10 +97,17 @@ export default function OrderPage() {
     setReordering(true);
     setErrorMessage("");
     try {
-      const checked = await reorderPlanItems(planId, itemsRef.current.map((item) => item.itemId));
-      setItems(checked.items);
-      itemsRef.current = checked.items;
-      setHasConflict(checked.hasConflict);
+      const saved = await reorderPlanItems(planId, itemsRef.current.map((item) => item.itemId));
+      let latest = saved;
+      try {
+        // 순서 저장 직후 최신 조회 결과로 다시 동기화해 충돌과 경고 상태가 섞이지 않도록 합니다.
+        latest = await getOrderCheck(planId);
+      } catch {
+        setErrorMessage("순서는 저장됐지만 최신 점검 결과를 다시 불러오지 못했습니다.");
+      }
+      setItems(latest.items);
+      itemsRef.current = latest.items;
+      setHasConflict(latest.items.some(hasOrderConflict));
     } catch (error) {
       setItems(dragStartItemsRef.current);
       itemsRef.current = dragStartItemsRef.current;
@@ -96,24 +120,37 @@ export default function OrderPage() {
   const handleConfirm = async () => {
     if (planId == null || hasConflict || pending) return;
     setPending(true);
-    try { await confirmPlanOrder(planId); router.push("/plan"); }
+    try { await confirmPlanOrder(planId); showSnackbarAfterNavigation("실행 순서가 확정되었습니다."); router.push("/plan"); }
     catch (error) { setErrorMessage(getApiErrorMessage(error, "순서를 확정하지 못했습니다.")); setPending(false); }
   };
 
-  const conflictingItems = items.filter((item) => item.conflict);
+  const conflictingItems = items.filter(hasOrderConflict);
   const latestConflictItem = [...conflictingItems]
     .reverse()
     .find((item) => item.conflictMessage?.trim()) ?? conflictingItems[conflictingItems.length - 1];
   const latestConflictMessage = latestConflictItem?.conflictMessage
     ?? (latestConflictItem ? `${latestConflictItem.title}의 순서를 확인해 주세요.` : "실행 순서를 확인해 주세요.");
+  const warningItems = items.filter(hasBackupWarning);
+  const warningMessages = [...new Set(warningItems
+    .map((item) => item.warningMessage?.trim() || (isMissingBackupMessage(item.conflictMessage) ? item.conflictMessage?.trim() : undefined))
+    .filter((message): message is string => Boolean(message)))];
 
   return <PageContainer className="gap-3 pb-10 pt-[70px] md:!px-[120px] md:!pt-0">
-    <PageHeader title="실행 순서 점검" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="items-center px-1 py-2 md:px-0 md:py-0" />
+    <PageHeader title="실행 순서 점검" backHref="/plan" backLabel="계획 홈으로 돌아가기" className="mx-auto max-w-[342px] items-center px-1 py-2 md:max-w-[460px] md:px-0 md:py-0" />
     <div className="mx-auto flex w-full max-w-[342px] flex-col gap-10 pt-3 md:max-w-[460px] md:pt-[38px]">
       {hasConflict && <section className="rounded-[20px] bg-[#f3f3ff] px-5 pb-[22px] pt-5" role="alert">
         <Image alt="" className="size-6" height={24} src="/icons/order-warning.svg" width={24} />
         <h2 className="mt-2.5 text-sm font-bold text-[#43306d] md:text-base">순서 충돌 {conflictingItems.length}건</h2>
         <p className="mt-2.5 whitespace-pre-wrap text-xs font-normal leading-normal text-[#796b6c] md:text-sm">{latestConflictMessage}</p>
+      </section>}
+      {warningItems.length > 0 && <section className="rounded-[20px] bg-[#f3f3ff] px-5 pb-[22px] pt-5" role="status">
+        <Image alt="" className="size-6" height={24} src="/icons/order-warning.svg" width={24} />
+        <h2 className="mt-2.5 text-sm font-bold text-[#43306d] md:text-base">대체 담당자를 확인해 주세요</h2>
+        <div className="mt-2.5 flex flex-col gap-1.5 text-xs font-normal leading-normal text-[#796b6c] md:text-sm">
+          {warningMessages.length > 0
+            ? warningMessages.map((message) => <p className="whitespace-pre-wrap" key={message}>{message}</p>)
+            : <p>대체 담당자가 등록되지 않은 항목이 {warningItems.length}개 있어요.</p>}
+        </div>
       </section>}
       {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
 
@@ -149,7 +186,7 @@ export default function OrderPage() {
           const target = document.elementsFromPoint(event.clientX, event.clientY).find(
             (element) => element instanceof HTMLElement && element.dataset.orderId,
           );
-          if (target instanceof HTMLElement) moveItem(Number(target.dataset.orderId));
+          if (target instanceof HTMLElement && target.dataset.orderId) moveItem(target.dataset.orderId);
         }}
         onPointerUp={(event) => {
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -163,7 +200,7 @@ export default function OrderPage() {
       >
         <div className="flex items-center justify-between">
           <strong className="text-base font-bold text-[#43306d] md:text-lg">{index + 1}</strong>
-          <span className="text-xs font-medium text-[#838383] md:text-sm">{item.conflict ? `${getActionLabel(item.actionType)}·충돌` : "가능"}</span>
+          <span className="text-xs font-medium text-[#838383] md:text-sm">{hasOrderConflict(item) ? `${getActionLabel(item.actionType)}·충돌` : "가능"}</span>
         </div>
         <h3 className="text-sm font-bold text-[#43306d] md:text-base">{item.title}</h3>
         <div className="flex gap-2.5">

@@ -1,10 +1,16 @@
 // 단계별 대체 담당자 화면
+"use client";
+
 import Image from "next/image";
 import { BrandLogo } from "@/components/BrandLogo";
 import { PageHeader } from "@/components/PageHeader";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { completePackageAction, getPosthumousPackage, reportPackageIssue } from "@/lib/api/public";
+import type { PackageActionResponse } from "@/lib/api/public-types";
 
-function ActionButton({ children, secondary = false }: { children: string; secondary?: boolean }) {
-  return <button className={`flex min-h-11 w-full items-center justify-center rounded-[14px] px-5 py-3.5 text-sm font-medium leading-normal text-[#fbfafd] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d] lg:min-h-12 lg:text-base ${secondary ? "bg-[#7f62b8] hover:bg-[#7055a4]" : "bg-[#43306d] hover:bg-[#332452] lg:bg-[#3c2b62]"}`} type="button">{children}</button>;
+function ActionButton({ children, disabled, onClick, secondary = false }: { children: string; disabled?: boolean; onClick: () => void; secondary?: boolean }) {
+  return <button className={`flex min-h-11 w-full items-center justify-center rounded-[14px] px-5 py-3.5 text-sm font-medium leading-normal text-[#fbfafd] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d] disabled:opacity-50 lg:min-h-12 lg:text-base ${secondary ? "bg-[#7f62b8] hover:bg-[#7055a4]" : "bg-[#43306d] hover:bg-[#332452] lg:bg-[#3c2b62]"}`} disabled={disabled} onClick={onClick} type="button">{children}</button>;
 }
 
 function PersonCard({ backup = false }: { backup?: boolean }) {
@@ -13,7 +19,7 @@ function PersonCard({ backup = false }: { backup?: boolean }) {
       <div className="flex flex-col gap-3 lg:gap-2">
         <div className="flex flex-col gap-1.5">
           <h2 className="text-sm font-bold leading-none lg:text-base">{backup ? "대체 담당자" : "관계 정리 담당자"}</h2>
-          <strong className="text-sm font-semibold leading-none text-[#584e4d] lg:text-[17px]">{backup ? "나신한" : "이지수"}</strong>
+          <strong className="text-sm font-semibold leading-none text-[#584e4d] lg:text-[17px]">{backup ? "대체 담당자" : "현재 담당자"}</strong>
         </div>
         <p className="text-xs font-medium leading-none text-[#796b6c] lg:text-sm">{backup ? "아직 연락하지 않았어요" : "이메일은 정상적으로 전달 되었어요"}</p>
       </div>
@@ -28,6 +34,30 @@ function PersonCard({ backup = false }: { backup?: boolean }) {
 }
 
 export default function BackupPage() {
+  const router = useRouter();
+  const [action, setAction] = useState<PackageActionResponse | null>(null);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+  const completionInFlight = useRef(false);
+  const query = () => new URLSearchParams(window.location.search);
+  useEffect(() => {
+    const params = query();
+    const sessionId = params.get("accessSessionId");
+    const actionId = params.get("actionId");
+    if (!sessionId || !actionId) {
+      queueMicrotask(() => setMessage("유효한 단계 정보가 필요합니다."));
+      return;
+    }
+    getPosthumousPackage(sessionId)
+      .then((packageData) => {
+        const selectedAction = packageData.actions.find((item) => item.actionId === actionId);
+        if (!selectedAction) throw new Error("해당 단계를 찾을 수 없습니다.");
+        setAction(selectedAction);
+      })
+      .catch((reason: unknown) => setMessage(reason instanceof Error ? reason.message : "단계 정보를 불러오지 못했습니다."));
+  }, []);
+  const finish = async () => { const params = query(); const sessionId = params.get("accessSessionId"); const actionId = params.get("actionId"); if (!sessionId || !actionId) return setMessage("유효한 단계 정보가 필요합니다."); if (action?.status === "COMPLETED" || completionInFlight.current) return; completionInFlight.current = true; setPending(true); try { await completePackageAction(sessionId, actionId); router.push("/package?accessSessionId=" + encodeURIComponent(sessionId)); } catch (reason) { setMessage(reason instanceof Error ? reason.message : "단계를 완료하지 못했습니다."); } finally { completionInFlight.current = false; setPending(false); } };
+  const report = async () => { const params = query(); const sessionId = params.get("accessSessionId"); const actionId = params.get("actionId"); if (!sessionId || !actionId) return setMessage("유효한 단계 정보가 필요합니다."); const reason = window.prompt("문제가 발생한 이유를 입력해 주세요.") ?? ""; if (!reason) return; setPending(true); try { await reportPackageIssue(sessionId, actionId, reason); setMessage("문제가 신고되었습니다."); } catch (failure) { setMessage(failure instanceof Error ? failure.message : "문제를 신고하지 못했습니다."); } finally { setPending(false); } };
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] items-center px-[120px] lg:flex"><BrandLogo /></header>
 
@@ -43,19 +73,20 @@ export default function BackupPage() {
         <section className="flex flex-col gap-[22px]">
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold leading-none text-[#584e4d] lg:text-base lg:font-medium">현재 단계</p>
-            <h2 className="text-base font-bold leading-none lg:text-lg">메신저･연락처로 부고 전달</h2>
+            <h2 className="text-base font-bold leading-none lg:text-lg">{action?.title ?? "단계 정보 확인 중"}</h2>
           </div>
 
           <article className="rounded-[14px] bg-[#fbfafd] px-5 py-[18px]">
             <h3 className="text-sm font-bold leading-none lg:text-base">완료 조건</h3>
-            <p className="mt-2 text-[13px] font-medium leading-none text-[#584e4d] lg:text-[15px]">카톡 단체 방에 부고 메세지가 전달되면 완료돼요</p>
+            <p className="mt-2 text-[13px] font-medium leading-none text-[#584e4d] lg:text-[15px]">{action?.precondition ?? action?.content ?? "완료 조건을 확인하고 있어요"}</p>
           </article>
 
           <PersonCard />
 
           <div className="flex flex-col gap-3.5 pb-3.5 lg:gap-5 lg:py-5">
-            <ActionButton>완료하기</ActionButton>
-            <ActionButton secondary>문제 신고하기</ActionButton>
+            <ActionButton disabled={pending || !action || action.status === "COMPLETED"} onClick={() => void finish()}>{action?.status === "COMPLETED" ? "완료됨" : "완료하기"}</ActionButton>
+            <ActionButton disabled={pending} onClick={() => void report()} secondary>문제 신고하기</ActionButton>
+            {message ? <p className="text-center text-sm text-[#584e4d]">{message}</p> : null}
           </div>
         </section>
 

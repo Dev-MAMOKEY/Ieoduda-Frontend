@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/Button";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { PageContainer } from "@/components/PageContainer";
 import { getApiErrorMessage } from "@/lib/api/auth";
 import { getMyPlan, registerConfirmers } from "@/lib/api/plan";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 const CONFIRMER_COUNT = 2;
 type FieldErrors = Record<string, string>;
@@ -38,7 +40,7 @@ function TextField({ index, kind, label, placeholder, type = "text", error }: {
         required
         type={type}
       />
-      {error && <p className="px-2.5 text-xs font-medium text-red-600" id={errorId} role="alert">{error}</p>}
+      {error && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" id={errorId} role="alert">{error}</p>}
     </div>
   );
 }
@@ -63,7 +65,7 @@ function WaitingPeriodField({ index, error }: { index: number; error?: string })
         required
         type="number"
       />
-      {error && <p className="px-2.5 text-xs font-medium text-red-600" id={errorId} role="alert">{error}</p>}
+      {error && <p className="form-field-error px-2.5 text-xs font-medium text-red-600" id={errorId} role="alert">{error}</p>}
     </div>
   );
 }
@@ -89,6 +91,13 @@ export default function VerifierPage() {
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [showBackGuide, setShowBackGuide] = useState(true);
+
+  const moveAfterRegistration = (path: "/plan" | "/life-area") => {
+    showSnackbarAfterNavigation("지정 확인자가 등록되었습니다.");
+    router.push(path);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -132,7 +141,8 @@ export default function VerifierPage() {
     try {
       const plan = await getMyPlan();
       await registerConfirmers(plan.planId, confirmers);
-      router.push("/life-area");
+      setRegistrationComplete(true);
+      setPending(false);
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "지정 확인자를 등록하지 못했습니다."));
       setPending(false);
@@ -141,8 +151,18 @@ export default function VerifierPage() {
 
   return (
     <PageContainer className="gap-3 pb-8 pt-[70px] md:!px-[120px] md:!pb-[50px] md:!pt-0" data-node-id="454:2817">
-      <header className="grid w-full grid-cols-[24px_1fr_24px] items-center px-1 py-2 md:grid-cols-[28px_1fr_28px] md:px-0 md:py-0">
-        <BackButton href="/plan-info" label="계획 작성 안내로 돌아가기" />
+      <header className="mx-auto grid w-full max-w-[342px] grid-cols-[24px_1fr_24px] items-center px-1 py-2 md:max-w-[460px] md:grid-cols-[28px_1fr_28px] md:px-0 md:py-0">
+        <div className="group relative flex size-6 items-center justify-center md:size-7">
+          <BackButton href="/plan-info" label="계획 작성 안내로 돌아가기" />
+          <button
+            aria-label="계획 작성 안내 말풍선 닫기"
+            className={`absolute bottom-[calc(100%+6px)] left-0 z-30 whitespace-nowrap rounded-full bg-[#43306d] px-3 py-1.5 text-xs font-medium leading-none text-[#fbfafd] shadow-[0_6px_18px_rgba(67,48,109,0.2)] transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 md:text-sm ${showBackGuide ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
+            onClick={(event) => { setShowBackGuide(false); event.currentTarget.blur(); }}
+            type="button"
+          >
+            계획 작성 안내
+          </button>
+        </div>
         <h1 className="text-center text-lg font-bold leading-none text-[#43306d] md:text-xl">지정 확인자 등록</h1>
         <span aria-hidden className="size-6 md:size-7" />
       </header>
@@ -183,6 +203,16 @@ export default function VerifierPage() {
           </div>
         </aside>
       </div>
+      {registrationComplete ? (
+        <ConfirmationDialog
+          cancelLabel="계획 홈 화면"
+          confirmLabel="삶의 구역 대화"
+          description={<span className="text-balance">지정 확인자 등록이 완료됐어요. 계획 홈으로 이동하거나 삶의 구역 대화를 이어서 작성할 수 있어요.</span>}
+          onCancel={() => moveAfterRegistration("/plan")}
+          onConfirm={() => moveAfterRegistration("/life-area")}
+          title="어디로 이동할까요?"
+        />
+      ) : null}
     </PageContainer>
   );
 }

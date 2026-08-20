@@ -30,7 +30,10 @@ export interface LoginRequest {
   password: string;
 }
 
+export type UserRole = "USER" | "ADMIN" | "EXTERNAL";
+
 export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
+  role?: UserRole;
 }

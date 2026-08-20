@@ -8,8 +8,10 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
 import { LogoHeader } from "@/components/LogoHeader";
+import { OnboardingRouteGuard } from "@/components/OnboardingRouteGuard";
 import { getApiErrorMessage, login } from "@/lib/api/auth";
 import { getConsent, getMyPlan, getRoleChecks } from "@/lib/api/plan";
+import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 import {
   hasFieldErrors,
   validateLogin,
@@ -68,10 +70,21 @@ export default function LoginPage() {
 
     try {
       // 로그인 성공 시 토큰을 저장하고 로그인 이후 안내 화면으로 이동합니다.
-      await login(values);
+      const session = await login(values);
+      if (session.role === "ADMIN") {
+        showSnackbarAfterNavigation("로그인되었습니다.");
+        router.replace("/admin/evidence");
+        return;
+      }
+      if (session.role === "EXTERNAL") {
+        showSnackbarAfterNavigation("로그인되었습니다.");
+        router.replace("/evidence");
+        return;
+      }
       // 로그인 직후 동의 상태를 조회해 신규·기존 사용자 흐름을 나눕니다.
       const consent = await getConsent();
       if (!consent.agreed) {
+        showSnackbarAfterNavigation("로그인되었습니다.");
         router.replace("/agreement");
         return;
       }
@@ -80,7 +93,8 @@ export default function LoginPage() {
       const plan = await getMyPlan();
       const roleChecks = await getRoleChecks(plan.planId);
       const hasConfirmer = roleChecks.some((role) => role.type === "CONFIRMER");
-      router.replace(hasConfirmer ? "/plan" : "/plan-info");
+      showSnackbarAfterNavigation("로그인되었습니다.");
+      router.replace(hasConfirmer ? "/plan" : "/verifier");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "로그인에 실패했습니다."));
       setPending(false);
@@ -88,6 +102,7 @@ export default function LoginPage() {
   };
 
   return (
+    <OnboardingRouteGuard current="public">
     <main
       className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col bg-[#f0f0f2] text-[#28292e] md:max-w-none"
       data-node-id="439:1136"
@@ -135,5 +150,6 @@ export default function LoginPage() {
         </form>
       </div>
     </main>
+    </OnboardingRouteGuard>
   );
 }

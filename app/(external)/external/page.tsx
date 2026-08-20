@@ -1,16 +1,13 @@
+"use client";
+
 import { BrandLogo } from "@/components/BrandLogo";
 import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/Button";
 import { PageHeader } from "@/components/PageHeader";
-
-const documents = {
-  "death-certificate-kim": { owner: "김나무", title: "사망 진단서", submittedAt: "26.05.11 PM 11:50" },
-  "medical-examination-kim": { owner: "김나무", title: "검안서", submittedAt: "26.05.11 AM 12:30" },
-  "death-report-lee": { owner: "이신한", title: "사망 신고서", submittedAt: "26.12.01 AM 14:00" },
-  "death-certificate-lee": { owner: "이신한", title: "사망 진단서", submittedAt: "26.12.03 PM 09:55" },
-} as const;
-
-type DocumentId = keyof typeof documents;
+import { useEffect, useRef, useState } from "react";
+import { getApiErrorMessage } from "@/lib/api/auth";
+import { decidePartnerReview, downloadPartnerReviewFile, getPartnerReview } from "@/lib/api/partner";
+import type { PartnerReview } from "@/lib/api/partner-types";
 
 function DocumentSheet() {
   return <div aria-label="증빙 문서 미리보기" className="flex h-[300px] w-[230px] flex-col items-center gap-5 border border-[#d7d0d0] bg-white px-5 py-[21px] lg:h-auto lg:w-[340px] lg:border-[1.4px] lg:p-5">
@@ -21,14 +18,58 @@ function DocumentSheet() {
   </div>;
 }
 
-function ActionButton({ children, tone }: { children: string; tone: "secondary" | "light" }) {
-  return <button className={`flex min-h-11 w-full items-center justify-center rounded-[14px] px-5 py-3.5 text-sm font-medium leading-none transition-colors lg:text-base ${tone === "secondary" ? "bg-[#7f62b8] text-[#fbfafd] hover:bg-[#7055a4]" : "bg-[#e2dafa] text-[#43306d] hover:bg-[#d6caef]"}`} type="button">{children}</button>;
+function ActionButton({ children, disabled, onClick, tone }: { children: string; disabled?: boolean; onClick: () => void; tone: "secondary" | "light" }) {
+  return <button className={`flex min-h-11 w-full items-center justify-center rounded-[14px] px-5 py-3.5 text-sm font-medium leading-none transition-colors disabled:opacity-50 lg:text-base ${tone === "secondary" ? "bg-[#7f62b8] text-[#fbfafd] hover:bg-[#7055a4]" : "bg-[#e2dafa] text-[#43306d] hover:bg-[#d6caef]"}`} disabled={disabled} onClick={onClick} type="button">{children}</button>;
 }
 
-export default async function ExternalReviewPage({ searchParams }: { searchParams: Promise<{ doc?: string }> }) {
-  const { doc } = await searchParams;
-  const documentId: DocumentId = doc && doc in documents ? doc as DocumentId : "death-certificate-kim";
-  const document = documents[documentId];
+export default function ExternalReviewPage() {
+  const [review, setReview] = useState<PartnerReview | null>(null);
+  const [memo, setMemo] = useState("");
+  const [pending, setPending] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState("");
+  const decisionInFlight = useRef(false);
+  useEffect(() => {
+    const reviewId = new URLSearchParams(window.location.search).get("doc");
+    if (!reviewId) { queueMicrotask(() => setError("검토할 증빙 자료가 지정되지 않았습니다.")); return; }
+    getPartnerReview(reviewId).then(setReview).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "증빙 자료를 불러오지 못했습니다."));
+  }, []);
+  const decide = async (decision: "APPROVE" | "REJECT" | "ADDITIONAL_INFO_REQUESTED") => {
+    if (!review || review.reviewStatus !== "PENDING" || pending || decisionInFlight.current) return;
+    if (decision === "REJECT" && !memo.trim()) {
+      setError("반려 사유를 검토 메모에 입력해 주세요.");
+      return;
+    }
+    const password = window.prompt("검토자 비밀번호를 입력해 주세요.") ?? "";
+    if (!password) return;
+    decisionInFlight.current = true;
+    setPending(true);
+    setError("");
+    try { setReview(await decidePartnerReview(review.reviewId, decision, password, memo.trim() || undefined)); }
+    catch (reason) { setError(getApiErrorMessage(reason, "검토 결과를 저장하지 못했습니다.")); }
+    finally { decisionInFlight.current = false; setPending(false); }
+  };
+  const downloadOriginal = async () => {
+    if (!review || downloading) return;
+    setDownloading(true);
+    setError("");
+    try {
+      const blob = await downloadPartnerReviewFile(review.reviewId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = review.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "증빙 원본을 다운로드하지 못했습니다.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+  const documentInfo = review ? { owner: review.targetName, title: review.fileName, submittedAt: new Date(review.submittedAt).toLocaleString("ko-KR") } : { owner: "", title: "증빙 자료", submittedAt: "확인 중" };
 
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] items-center px-[120px] lg:flex"><BrandLogo /></header>
@@ -37,18 +78,18 @@ export default async function ExternalReviewPage({ searchParams }: { searchParam
       <PageHeader backHref="/evidence" className="mb-[22px] py-2 lg:hidden" title="" />
       <header className="hidden w-[460px] grid-cols-[24px_1fr_24px] items-center lg:grid">
         <BackButton href="/evidence" label="등록된 증빙 자료로 돌아가기" />
-        <h1 className="text-center text-xl font-bold leading-none">{document.owner}님의 증빙 자료</h1>
+        <h1 className="text-center text-xl font-bold leading-none">{documentInfo.owner}님의 증빙 자료</h1>
         <span aria-hidden className="size-6" />
       </header>
 
       <div className="flex w-full flex-col gap-[22px] lg:mt-[50px] lg:w-[460px] lg:gap-5">
-        <section className="flex w-full flex-col items-center gap-[18px] rounded-[20px] bg-[#fbfafd] px-5 py-6 lg:gap-[60px] lg:py-9">
+        <button aria-label={`${documentInfo.title} 원본 다운로드`} className="flex w-full flex-col items-center gap-[18px] rounded-[20px] bg-[#fbfafd] px-5 py-6 transition-shadow hover:shadow-[0_4px_16px_rgba(67,48,109,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d] disabled:cursor-wait disabled:opacity-60 lg:gap-[60px] lg:py-9" disabled={!review || downloading} onClick={() => void downloadOriginal()} type="button">
           <header className="flex flex-col items-center gap-2 text-center lg:gap-3">
-            <h2 className="text-base font-bold leading-none lg:text-lg">{document.title}.pdf</h2>
-            <p className="text-xs font-medium leading-none text-[#796b6c] lg:text-sm">제출일 {document.submittedAt}</p>
+            <h2 className="text-base font-bold leading-none lg:text-lg">{documentInfo.title}</h2>
+            <p className="text-xs font-medium leading-none text-[#796b6c] lg:text-sm">제출일 {documentInfo.submittedAt}</p>
           </header>
           <DocumentSheet />
-        </section>
+        </button>
 
         <section className="flex flex-col gap-3 lg:gap-5">
           <div className="flex flex-col items-center gap-1.5 py-0 text-center text-xs leading-none text-[#796b6c] lg:gap-2 lg:pb-2.5 lg:pt-0.5 lg:text-sm">
@@ -58,15 +99,16 @@ export default async function ExternalReviewPage({ searchParams }: { searchParam
 
           <label className="flex flex-col gap-2.5">
             <span className="px-2.5 text-sm font-bold leading-none lg:px-0 lg:text-base">검토 메모</span>
-            <input className="min-h-11 w-full rounded-[14px] border-0 bg-[#fbfafd] px-4 py-3.5 text-[13px] font-medium leading-none text-[#584e4d] outline-none placeholder:text-[#a99d9e] focus-visible:ring-2 focus-visible:ring-[#43306d]/25 lg:rounded-[20px] lg:px-5 lg:text-[15px]" placeholder="검토 근거를 작성해 주세요" />
+            <input className="min-h-11 w-full rounded-[14px] border-0 bg-[#fbfafd] px-4 py-3.5 text-[13px] font-medium leading-none text-[#584e4d] outline-none placeholder:text-[#a99d9e] focus-visible:ring-2 focus-visible:outline-[#43306d]/25 lg:rounded-[20px] lg:px-5 lg:text-[15px]" onChange={(event) => setMemo(event.target.value)} placeholder="검토 근거를 작성해 주세요" value={memo} />
           </label>
 
           <div className="flex flex-col gap-3.5 lg:gap-[22px]">
             <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-1 lg:gap-[22px]">
-              <Button type="button">승인하기</Button>
-              <ActionButton tone="secondary">반려하기</ActionButton>
+              <Button disabled={!review || review.reviewStatus !== "PENDING" || pending} onClick={() => void decide("APPROVE")} type="button">승인하기</Button>
+              <ActionButton disabled={!review || review.reviewStatus !== "PENDING" || pending} onClick={() => void decide("REJECT")} tone="secondary">반려하기</ActionButton>
             </div>
-            <ActionButton tone="light">추가자료 요청하기</ActionButton>
+            <ActionButton disabled={!review || review.reviewStatus !== "PENDING" || pending} onClick={() => void decide("ADDITIONAL_INFO_REQUESTED")} tone="light">추가자료 요청하기</ActionButton>
+            {error ? <p className="text-center text-sm text-red-600">{error}</p> : null}
           </div>
         </section>
       </div>

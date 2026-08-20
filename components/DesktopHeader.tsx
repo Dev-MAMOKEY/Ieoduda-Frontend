@@ -1,8 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { LogoutButton } from "@/components/LogoutButton";
-import { getCurrentUser } from "@/lib/api";
+import { useCurrentUser } from "@/lib/hooks/use-current-user";
 
 const tabs = [
   { id: "home", label: "홈", href: "/plan", icon: "/icons/plan-home/figma/home.svg" },
@@ -11,7 +13,7 @@ const tabs = [
 ];
 
 export function DesktopHeader({ authenticated = false, showNavigation = false, activeTab = "home" }: { authenticated?: boolean; showNavigation?: boolean; activeTab?: string }) {
-  const user = getCurrentUser();
+  const { user } = useCurrentUser(authenticated);
   return (
     <header className={`relative hidden h-[125px] w-full shrink-0 grid-cols-3 items-center px-[50px] xl:px-[120px] ${showNavigation ? "lg:grid" : "md:grid"}`}>
       <BrandLogo />
@@ -26,7 +28,7 @@ export function DesktopHeader({ authenticated = false, showNavigation = false, a
         )}
       </div>
       <div className="flex shrink-0 items-center justify-end gap-[30px]">
-        <div className="flex shrink-0 items-center gap-3.5"><div className="size-[43px] shrink-0 rounded-full bg-[#f3f3ff]" /><div className="flex shrink-0 flex-col gap-1"><strong className="text-lg font-bold leading-none text-[#43306d]">{authenticated ? user.name : "비회원"}</strong><span className="text-[15px] font-medium leading-none text-[#796b6c]">{authenticated ? user.email : "로그인해 주세요"}</span></div></div>
+        <div className="flex shrink-0 items-center gap-3.5"><div className="size-[43px] shrink-0 rounded-full border-[1.6px] border-[#320c35] bg-[#f3f3ff]" /><div className="flex shrink-0 flex-col gap-1"><strong className="text-lg font-bold leading-none text-[#43306d]">{authenticated ? user?.name ?? "사용자" : "비회원"}</strong><span className="text-[15px] font-medium leading-none text-[#796b6c]">{authenticated ? user?.email ?? "불러오는 중" : "로그인해 주세요"}</span></div></div>
         {authenticated && <LogoutButton />}
       </div>
     </header>
