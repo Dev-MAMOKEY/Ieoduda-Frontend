@@ -3,10 +3,12 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminAuditTabs } from "@/components/AdminAuditTabs";
+import { ActionFeedback } from "@/components/ActionFeedback";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
-import { getEmailAudit, retryEmailDelivery } from "@/lib/api";
+import { freezeReleaseCase, getEmailAudit, retryEmailDelivery } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/api/auth";
 
 type EmailAudit = Awaited<ReturnType<typeof getEmailAudit>>;
 type EmailRecipient = EmailAudit["recipients"][number];
@@ -49,6 +51,9 @@ export default function EmailPage() {
   const [caseId, setCaseId] = useState("");
   const [caseIdError, setCaseIdError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [freezePending, setFreezePending] = useState(false);
+  const [freezeMessage, setFreezeMessage] = useState("");
+  const [freezeError, setFreezeError] = useState(false);
   const load = useCallback(async (nextCaseId: string) => {
     try {
       setAudit(await getEmailAudit(nextCaseId));
@@ -81,6 +86,23 @@ export default function EmailPage() {
   const retryFailed = async () => {
     await Promise.all(audit.recipients.filter((item) => item.warning).map((item) => retryEmailDelivery(caseId, item.id)));
     await load(caseId);
+  };
+  const freezeCase = async () => {
+    const nextCaseId = caseId.trim();
+    if (!nextCaseId || freezePending) return;
+
+    setFreezePending(true);
+    setFreezeMessage("");
+    setFreezeError(false);
+    try {
+      await freezeReleaseCase(nextCaseId);
+      setFreezeMessage("사건을 동결했습니다.");
+    } catch (error) {
+      setFreezeError(true);
+      setFreezeMessage(getApiErrorMessage(error, "사건을 동결하지 못했습니다."));
+    } finally {
+      setFreezePending(false);
+    }
   };
 
   return <main className="min-h-dvh text-[#43306d]">
@@ -136,9 +158,10 @@ export default function EmailPage() {
         <div className="flex flex-col gap-6 lg:gap-[22px] lg:pt-5">
           <Button disabled={!caseId || !audit.recipients.some((item) => item.warning)} onClick={retryFailed} type="button">재시도 정책 실행하기</Button>
           <div className="grid grid-cols-2 gap-[22px] lg:grid-cols-1">
-            <button className="flex min-h-11 items-center justify-center rounded-[14px] bg-[#7f62b8] px-5 py-3.5 text-sm font-medium leading-none text-[#fbfafd] transition-colors hover:bg-[#7055a4] lg:text-base" type="button">사건 동결하기</button>
+            <button className="flex min-h-11 items-center justify-center rounded-[14px] bg-[#7f62b8] px-5 py-3.5 text-sm font-medium leading-none text-[#fbfafd] transition-colors enabled:hover:bg-[#7055a4] disabled:cursor-not-allowed disabled:opacity-60 lg:text-base" disabled={!caseId.trim() || freezePending} onClick={() => void freezeCase()} type="button">{freezePending ? "사건 동결 중..." : "사건 동결하기"}</button>
             <button className="flex min-h-11 items-center justify-center rounded-[14px] bg-[#e2dafa] px-5 py-3.5 text-sm font-medium leading-none text-[#43306d] transition-colors hover:bg-[#d6caef] lg:text-base" type="button">파트너 문의하기</button>
           </div>
+          {freezeMessage ? <ActionFeedback tone={freezeError ? "error" : "success"}>{freezeMessage}</ActionFeedback> : null}
         </div>
       </div>
     </section>

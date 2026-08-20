@@ -11,6 +11,10 @@ export async function retryEmailDelivery(caseId: string, logId: string) {
   const { data } = await apiClient.post<ApiResponse<EmailDelivery>>("/api/admin/release-cases/" + caseId + "/email-deliveries/" + logId + "/retry");
   return unwrap(data);
 }
+export async function freezeReleaseCase(caseId: string) {
+  const { data } = await apiClient.post<ApiResponse<unknown>>("/api/admin/release-cases/" + caseId + "/freeze");
+  return unwrap(data);
+}
 export async function getEvidenceDeletionStatus(evidenceId: string) {
   const { data } = await apiClient.get<ApiResponse<EvidenceDeletionStatus>>("/api/evidence/" + evidenceId + "/deletion-status");
   return unwrap(data);
