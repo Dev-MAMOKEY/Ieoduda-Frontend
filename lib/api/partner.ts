@@ -24,6 +24,10 @@ export async function downloadPartnerReviewFile(reviewId: string) {
   return response.data;
 }
 export async function decidePartnerReview(reviewId: string, decision: "APPROVE" | "REJECT" | "ADDITIONAL_INFO_REQUESTED", password: string, failureReason?: string) {
-  const { data } = await apiClient.post<ApiResponse<PartnerReview>>("/api/partner/reviews/" + reviewId + "/decision", { decision, password, failureReason });
+  const { data } = await apiClient.post<ApiResponse<PartnerReview>>(
+    "/api/partner/reviews/" + reviewId + "/decision",
+    { decision, password, failureReason },
+    { headers: { "Idempotency-Key": crypto.randomUUID() } },
+  );
   return unwrap(data);
 }

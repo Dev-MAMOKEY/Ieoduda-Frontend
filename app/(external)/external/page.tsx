@@ -4,7 +4,8 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/Button";
 import { PageHeader } from "@/components/PageHeader";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { getApiErrorMessage } from "@/lib/api/auth";
 import { decidePartnerReview, downloadPartnerReviewFile, getPartnerReview } from "@/lib/api/partner";
 import type { PartnerReview } from "@/lib/api/partner-types";
 
@@ -27,20 +28,26 @@ export default function ExternalReviewPage() {
   const [pending, setPending] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
+  const decisionInFlight = useRef(false);
   useEffect(() => {
     const reviewId = new URLSearchParams(window.location.search).get("doc");
     if (!reviewId) { queueMicrotask(() => setError("검토할 증빙 자료가 지정되지 않았습니다.")); return; }
     getPartnerReview(reviewId).then(setReview).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "증빙 자료를 불러오지 못했습니다."));
   }, []);
   const decide = async (decision: "APPROVE" | "REJECT" | "ADDITIONAL_INFO_REQUESTED") => {
-    if (!review || pending) return;
+    if (!review || review.reviewStatus !== "PENDING" || pending || decisionInFlight.current) return;
+    if (decision === "REJECT" && !memo.trim()) {
+      setError("반려 사유를 검토 메모에 입력해 주세요.");
+      return;
+    }
     const password = window.prompt("검토자 비밀번호를 입력해 주세요.") ?? "";
     if (!password) return;
+    decisionInFlight.current = true;
     setPending(true);
     setError("");
-    try { setReview(await decidePartnerReview(review.reviewId, decision, password, memo || undefined)); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "검토 결과를 저장하지 못했습니다."); }
-    finally { setPending(false); }
+    try { setReview(await decidePartnerReview(review.reviewId, decision, password, memo.trim() || undefined)); }
+    catch (reason) { setError(getApiErrorMessage(reason, "검토 결과를 저장하지 못했습니다.")); }
+    finally { decisionInFlight.current = false; setPending(false); }
   };
   const downloadOriginal = async () => {
     if (!review || downloading) return;
@@ -97,10 +104,10 @@ export default function ExternalReviewPage() {
 
           <div className="flex flex-col gap-3.5 lg:gap-[22px]">
             <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-1 lg:gap-[22px]">
-              <Button disabled={!review || pending} onClick={() => void decide("APPROVE")} type="button">승인하기</Button>
-              <ActionButton disabled={!review || pending} onClick={() => void decide("REJECT")} tone="secondary">반려하기</ActionButton>
+              <Button disabled={!review || review.reviewStatus !== "PENDING" || pending} onClick={() => void decide("APPROVE")} type="button">승인하기</Button>
+              <ActionButton disabled={!review || review.reviewStatus !== "PENDING" || pending} onClick={() => void decide("REJECT")} tone="secondary">반려하기</ActionButton>
             </div>
-            <ActionButton disabled={!review || pending} onClick={() => void decide("ADDITIONAL_INFO_REQUESTED")} tone="light">추가자료 요청하기</ActionButton>
+            <ActionButton disabled={!review || review.reviewStatus !== "PENDING" || pending} onClick={() => void decide("ADDITIONAL_INFO_REQUESTED")} tone="light">추가자료 요청하기</ActionButton>
             {error ? <p className="text-center text-sm text-red-600">{error}</p> : null}
           </div>
         </section>
