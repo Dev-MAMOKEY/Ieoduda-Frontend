@@ -7,6 +7,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { Button } from "@/components/Button";
 import { DesktopHeader } from "@/components/DesktopHeader";
 import { PageHeader } from "@/components/PageHeader";
+import { OnboardingRouteGuard } from "@/components/OnboardingRouteGuard";
 import { getApiErrorMessage } from "@/lib/api/auth";
 import { agreeToHandoff } from "@/lib/api/plan";
 import type { ConsentRequest } from "@/lib/api/plan-types";
@@ -102,6 +103,7 @@ export default function AgreementPage() {
 
   return (
     <AuthGuard>
+      <OnboardingRouteGuard current="agreement">
       <main className="flex min-h-dvh w-full flex-col text-[#28292e]">
         <DesktopHeader authenticated />
         <form
@@ -144,6 +146,7 @@ export default function AgreementPage() {
           </div>
         </form>
       </main>
+      </OnboardingRouteGuard>
     </AuthGuard>
   );
 }

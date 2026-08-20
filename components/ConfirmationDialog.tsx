@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useState, type ReactNode } from "react";
 
 export function ConfirmationDialog({
   cancelLabel = "취소하기",
@@ -17,6 +18,10 @@ export function ConfirmationDialog({
   onConfirm: () => void;
   title: string;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") onCancel();
@@ -25,8 +30,10 @@ export function ConfirmationDialog({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onCancel]);
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#28292e]/45 px-6 py-10" onMouseDown={onCancel}>
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#28292e]/45 px-6 py-10" onMouseDown={onCancel}>
       <section
         aria-describedby="confirmation-description"
         aria-labelledby="confirmation-title"
@@ -49,6 +56,7 @@ export function ConfirmationDialog({
           </button>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

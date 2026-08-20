@@ -17,8 +17,8 @@ export interface EvidenceDeletionStatus {
   evidenceId: string;
   fileName: string;
   evidenceType: "DEATH_CERTIFICATE" | "DEATH_REPORT" | "POSTMORTEM_REPORT";
-  reviewedAt: string;
-  deleteScheduledAt: string;
+  reviewedAt: string | null;
+  deleteScheduledAt: string | null;
   deletedAt: string | null;
   integrityHash: string;
   failureReason: string | null;

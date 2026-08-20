@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { UserProfileSummary } from "@/components/UserProfileSummary";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import type { ReactNode } from "react";
-import { deactivatePlan, getApiErrorMessage, getMyPlan } from "@/lib/api";
+import { deactivatePlan, getApiErrorMessage, getMyPlan, getReleaseSettings } from "@/lib/api";
 import { deleteCurrentUser } from "@/lib/api/user";
 import { clearAllStoredConversationIds } from "@/lib/api/conversation-storage";
 import { clearTokens } from "@/lib/api/token-storage";
@@ -22,7 +22,7 @@ const plans = [
   { label: "계획 버전" },
   { label: "담당자 수락", href: "/role?type=manager" },
   { label: "확인자 수락", href: "/role?type=verifier" },
-  { label: "대기 이의제기", href: "/appeal" },
+  { label: "대기 이의제기" },
 ];
 const cleanup = [
   {
@@ -95,6 +95,23 @@ export default function ProfileSettingsPage() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [planDeactivated, setPlanDeactivated] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
+  const [appealPending, setAppealPending] = useState(false);
+
+  const handleAppealNavigation = async () => {
+    if (appealPending || pendingAction) return;
+    setAppealPending(true);
+    setActionMessage("");
+    try {
+      const plan = await getMyPlan();
+      const settings = await getReleaseSettings(plan.planId);
+      const allVerified = settings.selfWarningEmailVerified
+        && settings.disputeContact?.verified === true;
+      router.push(allVerified ? "/appeal/edit" : "/appeal");
+    } catch (error) {
+      setActionMessage(getApiErrorMessage(error, "대기·이의제기 상태를 확인하지 못했습니다."));
+      setAppealPending(false);
+    }
+  };
 
   const handleDeactivatePlan = async () => {
     if (pendingAction || planDeactivated) return;
@@ -176,7 +193,9 @@ export default function ProfileSettingsPage() {
         >
           <div className="flex flex-col gap-3">
             {plans.map((x) => (
-              <Row key={x.label} {...x} />
+              x.label === "대기 이의제기"
+                ? <Row disabled={appealPending || Boolean(pendingAction)} key={x.label} label={x.label} onClick={() => void handleAppealNavigation()} />
+                : <Row key={x.label} {...x} />
             ))}
           </div>
         </Section>

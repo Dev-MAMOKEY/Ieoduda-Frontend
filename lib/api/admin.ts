@@ -19,6 +19,12 @@ export async function retryEvidenceDeletion(evidenceId: string) {
   const { data } = await apiClient.post<ApiResponse<EvidenceDeletionStatus>>("/api/evidence/" + evidenceId + "/deletion-retry");
   return unwrap(data);
 }
+export async function getEvidenceDeletionStatuses(page = 0, size = 100) {
+  const { data } = await apiClient.get<ApiResponse<PageResponse<EvidenceDeletionStatus>>>("/api/admin/evidence/deletion-statuses", {
+    params: { page, size },
+  });
+  return unwrap(data);
+}
 export async function getAuthAuditLogs(page = 0, size = 20) {
   const { data } = await apiClient.get<ApiResponse<PageResponse<Record<string, unknown>>>>("/api/admin/auth-audit-logs", { params: { page, size } });
   return unwrap(data);

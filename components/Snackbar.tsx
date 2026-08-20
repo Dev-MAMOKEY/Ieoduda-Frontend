@@ -33,7 +33,7 @@ export function Snackbar() {
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-6 bottom-6 z-[100] flex justify-center md:bottom-8"
+      className="pointer-events-none fixed inset-x-6 top-6 z-[150] flex justify-center md:bottom-8 md:top-auto"
       role="status"
     >
       <div className="max-w-[460px] rounded-[14px] bg-[#43306d] px-5 py-3.5 text-center text-sm font-medium leading-normal text-[#fbfafd] shadow-[0_8px_24px_rgba(67,48,109,0.24)] md:px-6 md:text-base">

@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
 import { LogoHeader } from "@/components/LogoHeader";
+import { OnboardingRouteGuard } from "@/components/OnboardingRouteGuard";
 import { getApiErrorMessage, signup } from "@/lib/api/auth";
 import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 import {
@@ -92,6 +93,7 @@ export default function SignupPage() {
   };
 
   return (
+    <OnboardingRouteGuard current="public">
     <main
       className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col bg-[#f0f0f2] text-[#28292e] md:max-w-none"
       data-node-id="439:1226"
@@ -139,5 +141,6 @@ export default function SignupPage() {
         </form>
       </div>
     </main>
+    </OnboardingRouteGuard>
   );
 }

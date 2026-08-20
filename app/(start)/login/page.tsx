@@ -8,6 +8,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/Button";
 import { FormField } from "@/components/FormField";
 import { LogoHeader } from "@/components/LogoHeader";
+import { OnboardingRouteGuard } from "@/components/OnboardingRouteGuard";
 import { getApiErrorMessage, login } from "@/lib/api/auth";
 import { getConsent, getMyPlan, getRoleChecks } from "@/lib/api/plan";
 import { showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
@@ -104,6 +105,7 @@ export default function LoginPage() {
   };
 
   return (
+    <OnboardingRouteGuard current="public">
     <main
       className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col bg-[#f0f0f2] text-[#28292e] md:max-w-none"
       data-node-id="439:1136"
@@ -151,5 +153,6 @@ export default function LoginPage() {
         </form>
       </div>
     </main>
+    </OnboardingRouteGuard>
   );
 }

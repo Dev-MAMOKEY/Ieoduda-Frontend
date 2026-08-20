@@ -1,4 +1,4 @@
-import { getEmailDeliveries, getEvidenceDeletionStatus } from "./admin";
+import { getEmailDeliveries, getEvidenceDeletionStatuses } from "./admin";
 import {
   getConfirmerDetail,
   getHandoffChecks,
@@ -112,9 +112,9 @@ export async function getEmailAudit(caseId: string) {
   };
 }
 
-export async function getEvidenceAuditRecords(evidenceIds: string[]) {
-  const records = await Promise.all(evidenceIds.map(getEvidenceDeletionStatus));
-  return records.map((record) => ({
+export async function getEvidenceAuditRecords() {
+  const page = await getEvidenceDeletionStatuses();
+  return page.content.map((record) => ({
     evidenceId: record.evidenceId,
     title: record.fileName,
     status: record.deletedAt ? "삭제 완료" : record.failureReason ? "삭제 실패" : "삭제 예정",

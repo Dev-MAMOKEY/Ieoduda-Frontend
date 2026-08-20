@@ -59,29 +59,21 @@ function EvidenceCard({ record }: { record: EvidenceRecord }) {
 
 export default function EvidencePage() {
   const [records, setRecords] = useState<EvidenceRecord[]>([]);
-  const [evidenceIds, setEvidenceIds] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
-  const load = useCallback(async (ids: string[]) => {
-    if (ids.length === 0) {
-      setErrorMessage("URL에 evidenceId 또는 evidenceIds가 필요합니다.");
-      return;
-    }
+  const load = useCallback(async () => {
     try {
-      setRecords(await getEvidenceAuditRecords(ids));
+      setRecords(await getEvidenceAuditRecords());
       setErrorMessage("");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "증빙 삭제 감사를 불러오지 못했습니다.");
     }
   }, []);
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const ids = (params.get("evidenceIds") ?? params.get("evidenceId") ?? "").split(",").filter(Boolean);
-    queueMicrotask(() => setEvidenceIds(ids));
-    queueMicrotask(() => void load(ids));
+    queueMicrotask(() => void load());
   }, [load]);
   const retryFailed = async () => {
     await Promise.all(records.filter((record) => record.failed).map((record) => retryEvidenceDeletion(record.evidenceId)));
-    await load(evidenceIds);
+    await load();
   };
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] grid-cols-3 items-center px-[120px] lg:grid">

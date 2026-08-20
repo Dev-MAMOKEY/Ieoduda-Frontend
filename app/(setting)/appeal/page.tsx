@@ -231,7 +231,7 @@ export default function AppealPage() {
       setContactId(latestContactId);
       await updateReleasePolicy(currentPlanId, waitingPeriod);
       showSnackbarAfterNavigation("대기·이의제기 설정이 저장되었습니다.");
-      router.push("/appeal/edit");
+      router.push("/profile");
     } catch (error) {
       setSubmissionMessage(getApiErrorMessage(error, "대기 이의제기 정보를 저장하지 못했습니다."));
       setSubmissionPending(false);
