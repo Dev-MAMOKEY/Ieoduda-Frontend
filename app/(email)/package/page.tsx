@@ -23,15 +23,6 @@ function TaskItem({ active, description, title }: { active?: boolean; descriptio
   </div>;
 }
 
-function WaitingItem({ description, title }: { description: string; title: string }) {
-  return <div className="flex min-w-0 flex-1 flex-col items-start rounded-[14px] bg-[#eeecee] px-5 py-[18px] lg:w-full lg:flex-none lg:rounded-[20px]">
-    <div className="flex flex-col gap-1.5 lg:gap-2">
-      <h3 className="text-sm font-bold leading-none lg:text-base">{title}</h3>
-      <p className="whitespace-nowrap text-[13px] font-medium leading-none text-[#584e4d] lg:text-[15px]">{description}</p>
-    </div>
-  </div>;
-}
-
 export default function PackagePage() {
   const [data, setData] = useState<PosthumousPackageResponse | null>(null);
   const [pending, setPending] = useState(false);
@@ -66,40 +57,33 @@ export default function PackagePage() {
 
           <p className="py-2.5 text-center text-xs leading-none text-[#796b6c] lg:text-sm">{data?.notice ?? "인계 내용을 확인하고 있어요."}</p>
 
-          <article className="flex items-center justify-between rounded-[14px] bg-[#fbfafd] px-5 py-[18px]">
-            <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-bold leading-none lg:text-base">SNS 계정 처리</h3>
-              <p className="text-[13px] font-medium leading-none text-[#584e4d] lg:text-[15px]">비공개로 전환</p>
-            </div>
-            <span className="rounded-[20px] bg-[#e2dafa] px-2.5 py-1.5 text-xs font-semibold text-[#796b6c]">완료</span>
-          </article>
+          {data?.actions.map((action) => {
+            const active = action.actionId === activeAction?.actionId;
+            const completed = action.status === "COMPLETED";
+            return (
+              <article className={`flex flex-col gap-[18px] rounded-[16px] bg-[#fbfafd] px-5 pb-[18px] pt-5 lg:gap-4 lg:rounded-[20px] lg:py-[18px] ${active ? "border-[1.4px] border-[#7f62b8]" : ""}`} key={action.actionId}>
+                <header className="flex items-start justify-between gap-3">
+                  <h3 className="text-sm font-bold leading-none lg:text-base">{action.title}</h3>
+                  <span className={`shrink-0 text-[13px] font-medium leading-none lg:text-[15px] ${completed ? "rounded-[20px] bg-[#e2dafa] px-2.5 py-1.5 text-[#796b6c]" : "text-[#838383] lg:text-[#796b6c]"}`}>
+                    {completed ? "완료" : active ? "진행 중" : "대기"}
+                  </span>
+                </header>
+                <div className="flex gap-2.5 lg:flex-col">
+                  <TaskItem active={active || completed} description={action.content} title={action.targetName ?? action.action} />
+                </div>
+              </article>
+            );
+          })}
 
-          <article className="flex flex-col gap-[18px] rounded-[16px] border-[1.4px] border-[#7f62b8] bg-[#fbfafd] px-5 pb-[18px] pt-5 lg:gap-4 lg:rounded-[20px] lg:py-[18px]">
-            <header className="flex items-start justify-between gap-3">
-              <h3 className="text-sm font-bold leading-none lg:text-base">{activeAction?.title ?? "진행할 항목"}</h3>
-              <span className="shrink-0 text-[13px] font-medium leading-none text-[#838383] lg:text-[15px] lg:text-[#796b6c]">진행 중</span>
-            </header>
-            <div className="flex gap-2.5 lg:flex-col">
-              <TaskItem active description={activeAction?.content ?? "내용을 확인하고 있어요"} title={activeAction?.targetName ?? "실행 항목"} />
-            </div>
-          </article>
+          {data && data.actions.length === 0 ? (
+            <p className="rounded-[16px] bg-[#fbfafd] px-5 py-[18px] text-center text-sm text-[#796b6c]">진행할 사후 인계 항목이 없습니다.</p>
+          ) : null}
 
           <div className="flex flex-col gap-3.5 pb-3.5 lg:gap-5 lg:py-5">
             <ActionButton disabled={!activeAction || pending} onClick={() => void complete()}>완료하기</ActionButton>
-            <ActionButton href={issueHref} secondary>문제 신고하기</ActionButton>
+            {activeAction ? <ActionButton href={issueHref} secondary>문제 신고하기</ActionButton> : null}
             {error ? <p className="text-center text-sm text-red-600">{error}</p> : null}
           </div>
-
-          <article className="flex flex-col gap-[18px] rounded-[16px] bg-[#fbfafd] px-5 pb-[18px] pt-5 lg:gap-4 lg:rounded-[20px] lg:py-[18px]">
-            <header className="flex items-start justify-between gap-3">
-              <h3 className="text-sm font-bold leading-none lg:text-base">부가 계정･구독 처리</h3>
-              <span className="shrink-0 text-[13px] font-medium leading-none text-[#838383] lg:text-[15px] lg:text-[#796b6c]">대기</span>
-            </header>
-            <div className="flex gap-2.5 lg:flex-col">
-              <WaitingItem description="커뮤니티･카페 탈퇴" title="부가 계정" />
-              <WaitingItem description="OTT 구독 해지" title="구독 처리" />
-            </div>
-          </article>
         </section>
       </div>
     </section>
