@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
 import { getApiErrorMessage } from "@/lib/api/auth";
@@ -25,14 +25,17 @@ export function EmailVerificationPage({
   const [pending, setPending] = useState(false);
   const [verified, setVerified] = useState(false);
   const [message, setMessage] = useState("");
+  const requestInFlight = useRef(false);
 
   const handleVerify = async () => {
+    if (requestInFlight.current) return;
     const token = new URLSearchParams(window.location.search).get("token") ?? "";
     if (!token) {
       setMessage("유효한 이메일 검증 토큰이 필요합니다.");
       return;
     }
 
+    requestInFlight.current = true;
     setPending(true);
     setMessage("");
     try {
@@ -42,6 +45,7 @@ export function EmailVerificationPage({
     } catch (error) {
       setMessage(getApiErrorMessage(error, "이메일을 확인하지 못했습니다."));
     } finally {
+      requestInFlight.current = false;
       setPending(false);
     }
   };

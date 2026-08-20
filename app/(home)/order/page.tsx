@@ -35,6 +35,22 @@ function getAcceptanceLabel(status: OrderCheckItem["acceptanceStatus"]) {
   return "미승인";
 }
 
+function isMissingBackupMessage(message: string | null | undefined) {
+  if (!message) return false;
+  const normalized = message.toLowerCase().replace(/\s+/g, " ");
+  const mentionsBackup = normalized.includes("대체 담당자") || normalized.includes("backup");
+  const mentionsMissing = /없|미등록|부재|누락|not registered|missing|absent/.test(normalized);
+  return mentionsBackup && mentionsMissing;
+}
+
+function hasOrderConflict(item: OrderCheckItem) {
+  return item.conflict && !isMissingBackupMessage(item.conflictMessage);
+}
+
+function hasBackupWarning(item: OrderCheckItem) {
+  return item.warning || isMissingBackupMessage(item.warningMessage) || isMissingBackupMessage(item.conflictMessage);
+}
+
 export default function OrderPage() {
   const router = useRouter();
   const [planId, setPlanId] = useState<ApiId | null>(null);
@@ -56,7 +72,7 @@ export default function OrderPage() {
       setPlanId(plan.planId);
       setItems(order.items);
       itemsRef.current = order.items;
-      setHasConflict(order.items.some((item) => item.conflict));
+      setHasConflict(order.items.some(hasOrderConflict));
     }).catch((error) => setErrorMessage(getApiErrorMessage(error, "실행 순서를 불러오지 못했습니다.")));
   }, []);
 
@@ -91,7 +107,7 @@ export default function OrderPage() {
       }
       setItems(latest.items);
       itemsRef.current = latest.items;
-      setHasConflict(latest.items.some((item) => item.conflict));
+      setHasConflict(latest.items.some(hasOrderConflict));
     } catch (error) {
       setItems(dragStartItemsRef.current);
       itemsRef.current = dragStartItemsRef.current;
@@ -108,15 +124,15 @@ export default function OrderPage() {
     catch (error) { setErrorMessage(getApiErrorMessage(error, "순서를 확정하지 못했습니다.")); setPending(false); }
   };
 
-  const conflictingItems = items.filter((item) => item.conflict);
+  const conflictingItems = items.filter(hasOrderConflict);
   const latestConflictItem = [...conflictingItems]
     .reverse()
     .find((item) => item.conflictMessage?.trim()) ?? conflictingItems[conflictingItems.length - 1];
   const latestConflictMessage = latestConflictItem?.conflictMessage
     ?? (latestConflictItem ? `${latestConflictItem.title}의 순서를 확인해 주세요.` : "실행 순서를 확인해 주세요.");
-  const warningItems = items.filter((item) => item.warning);
+  const warningItems = items.filter(hasBackupWarning);
   const warningMessages = [...new Set(warningItems
-    .map((item) => item.warningMessage?.trim())
+    .map((item) => item.warningMessage?.trim() || (isMissingBackupMessage(item.conflictMessage) ? item.conflictMessage?.trim() : undefined))
     .filter((message): message is string => Boolean(message)))];
 
   return <PageContainer className="gap-3 pb-10 pt-[70px] md:!px-[120px] md:!pt-0">
@@ -184,7 +200,7 @@ export default function OrderPage() {
       >
         <div className="flex items-center justify-between">
           <strong className="text-base font-bold text-[#43306d] md:text-lg">{index + 1}</strong>
-          <span className="text-xs font-medium text-[#838383] md:text-sm">{item.conflict ? `${getActionLabel(item.actionType)}·충돌` : "가능"}</span>
+          <span className="text-xs font-medium text-[#838383] md:text-sm">{hasOrderConflict(item) ? `${getActionLabel(item.actionType)}·충돌` : "가능"}</span>
         </div>
         <h3 className="text-sm font-bold text-[#43306d] md:text-base">{item.title}</h3>
         <div className="flex gap-2.5">

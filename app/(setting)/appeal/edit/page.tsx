@@ -155,7 +155,7 @@ export default function AppealEditPage() {
 
   return (
     <PageContainer className="gap-0 pb-9 pt-[70px] md:min-h-[calc(100dvh-125px)] md:max-w-none md:px-[120px] md:pb-20 md:pt-0" data-node-id="525:3186">
-      <PageHeader backHref="/profile" title="대기·이의제기 수정" />
+      <PageHeader backHref="/profile" className="mx-auto max-w-[342px] items-center px-1 py-2 md:max-w-[460px] md:px-0 md:py-0" title="대기·이의제기 수정" />
       <div className="mx-auto flex w-full max-w-[342px] flex-col pt-5 md:max-w-[460px] md:pt-[50px]">
         {loading ? (
           <p className="py-10 text-center text-sm font-medium text-[#796b6c]" role="status">정보를 불러오는 중입니다.</p>

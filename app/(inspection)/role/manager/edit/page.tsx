@@ -119,7 +119,7 @@ function EditRoleManagerContent() {
             disabled={loading || pending}
           />
           <Button className="mt-[18px] md:h-[52px]" disabled={loading || pending || !assigneeId} type="submit">
-            {loading ? "불러오는 중..." : pending ? "수정 중..." : "수정하기"}
+            {loading ? "불러오는 중..." : pending ? "수정 중..." : "수정 및 수락 이메일 발송"}
           </Button>
         </form>
       </div>

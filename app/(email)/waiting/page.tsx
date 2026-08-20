@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { cancelReleaseCase, createObjection, getWaitingStatus } from "@/lib/api/public";
 import type { ReleaseStatusResponse } from "@/lib/api/public-types";
@@ -64,8 +64,12 @@ export default function WaitingPage() {
   const [status, setStatus] = useState<ReleaseStatusResponse | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const statusLoaded = useRef(false);
+  const requestInFlight = useRef(false);
   const query = () => new URLSearchParams(window.location.search);
   useEffect(() => {
+    if (statusLoaded.current) return;
+    statusLoaded.current = true;
     const caseId = query().get("caseId");
     if (!caseId) { queueMicrotask(() => setError("유효한 공개 절차 정보가 필요합니다.")); return; }
     getWaitingStatus(caseId).then(setStatus).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "대기 정보를 불러오지 못했습니다."));
@@ -74,16 +78,20 @@ export default function WaitingPage() {
     const caseId = query().get("caseId");
     const token = query().get("token");
     if (!caseId || !token) return setError("유효한 취소 링크 정보가 필요합니다.");
+    if (requestInFlight.current) return;
+    requestInFlight.current = true;
     setPending(true);
-    try { setStatus(await cancelReleaseCase(caseId, token)); } catch (reason) { setError(reason instanceof Error ? reason.message : "절차를 취소하지 못했습니다."); } finally { setPending(false); }
+    try { setStatus(await cancelReleaseCase(caseId, token)); } catch (reason) { setError(reason instanceof Error ? reason.message : "절차를 취소하지 못했습니다."); } finally { requestInFlight.current = false; setPending(false); }
   };
   const appeal = async () => {
     const params = query();
     const caseId = params.get("caseId") ?? "";
     const token = params.get("token") ?? "";
     if (!caseId || !token) return setError("유효한 이의 제기 링크 정보가 필요합니다.");
+    if (requestInFlight.current) return;
     const objectionReason = window.prompt("이의 제기 사유를 입력해 주세요.")?.trim() ?? "";
     if (!objectionReason) return;
+    requestInFlight.current = true;
     setPending(true);
     setError("");
     try {
@@ -92,6 +100,7 @@ export default function WaitingPage() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "이의 제기를 접수하지 못했습니다.");
     } finally {
+      requestInFlight.current = false;
       setPending(false);
     }
   };

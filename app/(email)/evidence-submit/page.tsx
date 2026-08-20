@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type DragEvent } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
 import { PageHeader } from "@/components/PageHeader";
@@ -22,6 +22,7 @@ export default function EvidenceSubmitPage() {
   const [message, setMessage] = useState("");
   const [dragging, setDragging] = useState(false);
   const [evidenceType, setEvidenceType] = useState<EvidenceType>("DEATH_CERTIFICATE");
+  const requestInFlight = useRef(false);
   const selectFiles = (selectedFiles: File[]) => {
     const acceptedTypes = ["application/pdf", "image/jpeg", "image/png"];
     const validFiles = selectedFiles.filter((file) => acceptedTypes.includes(file.type) && file.size <= 50 * 1024 * 1024);
@@ -47,6 +48,8 @@ export default function EvidenceSubmitPage() {
     const token = searchParams.get("token") ?? "";
     if (!caseId) return setMessage("유효한 공개 절차 정보가 필요합니다.");
     if (!token) return setMessage("유효한 증빙 제출 토큰이 필요합니다.");
+    if (requestInFlight.current) return;
+    requestInFlight.current = true;
     setPending(true);
     setMessage("");
     try {
@@ -54,7 +57,7 @@ export default function EvidenceSubmitPage() {
       setMessage("증빙 자료가 제출되었습니다.");
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : "증빙 자료를 제출하지 못했습니다.");
-    } finally { setPending(false); }
+    } finally { requestInFlight.current = false; setPending(false); }
   };
   return (
     <main className="min-h-dvh text-[#43306d]">

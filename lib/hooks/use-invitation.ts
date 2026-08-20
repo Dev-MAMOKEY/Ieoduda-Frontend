@@ -20,7 +20,10 @@ export function useRecipientInvitation() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const requestInFlight = useRef(false);
+  const invitationLoaded = useRef(false);
   useEffect(() => {
+    if (invitationLoaded.current) return;
+    invitationLoaded.current = true;
     const token = getToken();
     if (!token) {
       queueMicrotask(() => { setError("유효한 초대 토큰이 필요합니다."); setLoading(false); });
@@ -54,7 +57,10 @@ export function useConfirmerInvitation() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const requestInFlight = useRef(false);
+  const invitationLoaded = useRef(false);
   useEffect(() => {
+    if (invitationLoaded.current) return;
+    invitationLoaded.current = true;
     const token = getToken();
     if (!token) {
       queueMicrotask(() => { setError("유효한 초대 토큰이 필요합니다."); setLoading(false); });

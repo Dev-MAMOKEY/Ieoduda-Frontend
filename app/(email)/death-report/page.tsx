@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/Button";
 import { reportDeath } from "@/lib/api/public";
@@ -22,11 +22,14 @@ export default function DeathReportPage() {
   const [unknownDate, setUnknownDate] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const requestInFlight = useRef(false);
   const ownerName = invitation?.ownerName ?? "계획 작성자";
   const submit = async () => {
     const searchParams = new URLSearchParams(window.location.search);
     const token = searchParams.get("token") ?? "";
     if (!token) return setError("유효한 신고 토큰이 필요합니다.");
+    if (requestInFlight.current) return;
+    requestInFlight.current = true;
     setPending(true);
     setError("");
     try {
@@ -39,7 +42,7 @@ export default function DeathReportPage() {
       router.push("/evidence-submit?" + params.toString());
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "신고를 처리하지 못했습니다.");
-    } finally { setPending(false); }
+    } finally { requestInFlight.current = false; setPending(false); }
   };
   return (
     <main className="min-h-dvh text-[#43306d]">
