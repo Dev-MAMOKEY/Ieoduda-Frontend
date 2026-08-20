@@ -3,6 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ActionFeedback } from "@/components/ActionFeedback";
@@ -23,10 +24,17 @@ function RejectButton({ disabled, onClick }: { disabled: boolean; onClick: () =>
 }
 
 export default function VerifierAcceptPage() {
+  const router = useRouter();
   const { invitation, loading, pending, canDecide, error, decide } = useConfirmerInvitation();
   const [inquiry, setInquiry] = useState("");
   const ownerName = invitation?.ownerName ?? "계획 작성자";
   const inviteeName = invitation?.confirmerName ?? "확인자";
+  const handleDecision = async (decision: "accept" | "decline") => {
+    const result = await decide(decision, inquiry);
+    if (decision === "accept" && result?.reportDeathToken) {
+      router.push(`/death-report?token=${encodeURIComponent(result.reportDeathToken)}`);
+    }
+  };
   return (
     <main className="min-h-dvh text-[#43306d]">
       <header className="hidden h-[125px] items-center px-[120px] lg:flex">
@@ -96,8 +104,8 @@ export default function VerifierAcceptPage() {
               <p>부담이 된다면 거절해도 괜찮아요</p>
             </div>
           <div className="flex w-full flex-col gap-3.5 lg:gap-[22px]">
-              <Button disabled={loading || pending || !canDecide} onClick={() => void decide("accept", inquiry)} type="button">{invitation?.acceptanceStatus === "ACCEPTED" ? "수락 완료" : "역할 수락하기"}</Button>
-              <RejectButton disabled={loading || pending || !canDecide} onClick={() => void decide("decline", inquiry)} />
+              <Button disabled={loading || pending || !canDecide} onClick={() => void handleDecision("accept")} type="button">{invitation?.acceptanceStatus === "ACCEPTED" ? "수락 완료" : "역할 수락하기"}</Button>
+              <RejectButton disabled={loading || pending || !canDecide} onClick={() => void handleDecision("decline")} />
           </div>
           {loading ? <ActionFeedback>초대 정보를 확인하고 있어요.</ActionFeedback> : null}
           {pending ? <ActionFeedback>선택한 응답을 처리하고 있어요.</ActionFeedback> : null}

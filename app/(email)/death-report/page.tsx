@@ -48,11 +48,10 @@ export default function DeathReportPage() {
     setError("");
     try {
       const deathDate = unknownDate ? undefined : getValidDeathDate(date);
-      await reportDeath(token, deathDate);
+      const result = await reportDeath(token, deathDate);
       const params = new URLSearchParams();
-      params.set("token", token);
-      const caseId = searchParams.get("caseId");
-      if (caseId) params.set("caseId", caseId);
+      params.set("token", result.evidenceUploadToken);
+      params.set("caseId", result.caseId);
       router.push("/evidence-submit?" + params.toString());
     } catch (reason) {
       setError(getApiErrorMessage(reason, "신고를 처리하지 못했습니다."));

@@ -75,8 +75,9 @@ export function useConfirmerInvitation() {
     setPending(true);
     setError("");
     try {
-      await decideConfirmerInvitation(token, decision, inquiry);
-      setInvitation((current) => current ? { ...current, acceptanceStatus: decision === "accept" ? "ACCEPTED" : "DECLINED" } : current);
+      const result = await decideConfirmerInvitation(token, decision, inquiry);
+      setInvitation((current) => current ? { ...current, acceptanceStatus: result.acceptanceStatus } : current);
+      return result;
     } catch (reason) {
       setError(getApiErrorMessage(reason, "응답을 처리하지 못했습니다."));
     } finally {

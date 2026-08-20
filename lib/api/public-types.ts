@@ -40,8 +40,10 @@ export interface RecipientInviteDecisionResponse {
 
 export interface DeathReportResponse {
   confirmId: string;
+  caseId: string;
   reportStatus: "NOT_REPORTED" | "REPORTED" | "MATCHED" | "MISMATCHED";
   reportedAt: string | null;
+  evidenceUploadToken: string;
 }
 
 export interface ReleaseStatusResponse {
