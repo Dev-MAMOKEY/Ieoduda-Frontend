@@ -204,14 +204,27 @@ export default function AppealPage() {
         return;
       }
 
-      const latestContactId = latestSettings.disputeContact?.contactId ?? contactId;
+      const registeredContact = latestSettings.disputeContact;
+      const contactMatches = registeredContact?.name === contactName
+        && registeredContact.email.trim().toLowerCase() === contactEmail.toLowerCase();
+      const isContactVerified = registeredContact?.verified === true && contactMatches;
+
+      setContactVerified(isContactVerified);
+      if (!isContactVerified) {
+        setFieldErrors((current) => ({
+          ...current,
+          contactEmail: registeredContact?.verified
+            ? "검증한 이의 제기 연락처와 현재 입력값이 달라요. 검증 메일을 다시 보내 주세요."
+            : "이의 제기 연락처 이메일의 검증 링크를 눌러 확인을 완료해 주세요.",
+        }));
+        setContactVerificationMessage("이메일 확인이 완료된 후 다시 등록해 주세요.");
+        setSubmissionPending(false);
+        return;
+      }
+
+      const latestContactId = registeredContact.contactId ?? contactId;
       setContactId(latestContactId);
-      await Promise.all([
-        latestContactId == null
-          ? registerDisputeContact(currentPlanId, contactName, contactEmail)
-          : updateDisputeContact(currentPlanId, latestContactId, contactName, contactEmail),
-        updateReleasePolicy(currentPlanId, waitingPeriod),
-      ]);
+      await updateReleasePolicy(currentPlanId, waitingPeriod);
       router.push("/appeal/edit");
     } catch (error) {
       setSubmissionMessage(getApiErrorMessage(error, "대기 이의제기 정보를 저장하지 못했습니다."));
