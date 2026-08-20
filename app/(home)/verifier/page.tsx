@@ -207,7 +207,7 @@ export default function VerifierPage() {
         <ConfirmationDialog
           cancelLabel="계획 홈 화면"
           confirmLabel="삶의 구역 대화"
-          description={<>지정 확인자 등록이 완료됐어요.<br />계획 홈으로 이동하거나 삶의 구역 대화를 이어서 작성할 수 있어요.</>}
+          description={<span className="text-balance">지정 확인자 등록이 완료됐어요. 계획 홈으로 이동하거나 삶의 구역 대화를 이어서 작성할 수 있어요.</span>}
           onCancel={() => moveAfterRegistration("/plan")}
           onConfirm={() => moveAfterRegistration("/life-area")}
           title="어디로 이동할까요?"
