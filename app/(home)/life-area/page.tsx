@@ -37,6 +37,7 @@ type PlanItemCardProps = {
   item: PlanItem;
   displayOrder: number;
   busy: boolean;
+  sealed: boolean;
   onApprove: () => void;
   onDelete: () => void;
   onSave: (request: PlanItemUpdateRequest) => Promise<boolean>;
@@ -106,7 +107,7 @@ function getMessageContent(message: ConversationMessage) {
 }
 
 // 계획 카드의 조회 상태와 인라인 편집 상태를 한 컴포넌트에서 전환합니다.
-function PlanItemCard({ item, displayOrder, busy, onApprove, onDelete, onSave }: PlanItemCardProps) {
+function PlanItemCard({ item, displayOrder, busy, sealed, onApprove, onDelete, onSave }: PlanItemCardProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<PlanItemUpdateRequest>({
     targetName: item.targetName ?? "",
@@ -178,9 +179,10 @@ function PlanItemCard({ item, displayOrder, busy, onApprove, onDelete, onSave }:
           <button className="h-10 rounded-[20px] bg-white text-sm" disabled={busy} onClick={() => setEditing(false)} type="button">취소</button>
         </> : <>
           <button className="min-h-[48px] rounded-[14px] bg-[#3c2b62] px-5 py-[14px] text-sm font-medium leading-none text-[#fbfafd] disabled:opacity-50 md:text-base" disabled={busy || item.status === "APPROVED"} onClick={onApprove} type="button">{item.status === "APPROVED" ? "승인 완료" : "승인하기"}</button>
-          <button className="min-h-[48px] rounded-[14px] bg-[#7f62b8] px-5 py-[14px] text-sm font-medium leading-none text-[#fbfafd] disabled:opacity-50 md:text-base" disabled={busy} onClick={() => setEditing(true)} type="button">수정하기</button>
+          <button className="min-h-[48px] rounded-[14px] bg-[#7f62b8] px-5 py-[14px] text-sm font-medium leading-none text-[#fbfafd] disabled:cursor-not-allowed disabled:opacity-50 md:text-base" disabled={busy || sealed} onClick={() => setEditing(true)} type="button">수정하기</button>
         </>}
       </div>
+      {sealed ? <p className="text-center text-xs font-medium text-[#796b6c] md:text-sm" role="status">봉인된 계획입니다</p> : null}
     </article>
   );
 }
@@ -188,6 +190,7 @@ function PlanItemCard({ item, displayOrder, busy, onApprove, onDelete, onSave }:
 export default function LifeAreaPage() {
   const router = useRouter();
   const [planId, setPlanId] = useState<ApiId | null>(null);
+  const [planSealed, setPlanSealed] = useState(false);
   const [conversationId, setConversationId] = useState<ApiId | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [items, setItems] = useState<PlanItem[]>([]);
@@ -209,6 +212,7 @@ export default function LifeAreaPage() {
     let active = true;
     // 저장된 conversationId가 있으면 백엔드 이력을 복구하고, 없거나 무효할 때만 새 세션을 만듭니다.
     getMyPlan().then(async (plan) => {
+      setPlanSealed(plan.status === "SEALED");
       const areas = await getLifeAreas(plan.planId);
       let nextConversationId: ApiId | null = getStoredConversationId(plan.planId);
       const hadStoredConversationId = nextConversationId != null;
@@ -379,7 +383,7 @@ export default function LifeAreaPage() {
           return <section className="flex w-full flex-col gap-[22px] md:gap-10" key={entry.messageId}>
             <div className={`whitespace-pre-wrap px-[22px] py-[18px] text-[13px] font-medium leading-normal md:text-[15px] ${entry.role === "USER" ? "self-end rounded-bl-[14px] rounded-br-[14px] rounded-tl-[14px] bg-[#43306d] text-[#fbfafd] md:w-full md:px-[30px] md:py-5" : "max-w-[85%] self-start rounded-bl-[14px] rounded-br-[14px] rounded-tr-[14px] bg-[#fbfafd] text-[#43306d]"}`}>{getMessageContent(entry)}</div>
             {entry.messageId === latestResultMessageId && items.length > 0 && <>
-              <div className="grid w-full gap-[22px]">{items.map((item, index) => <PlanItemCard busy={busyItemId === item.itemId} displayOrder={index + 1} item={item} key={item.itemId} onApprove={() => handleApprove(item.itemId)} onDelete={() => setDeleteTargetId(item.itemId)} onSave={(request) => handleUpdate(item.itemId, request)} />)}</div>
+              <div className="grid w-full gap-[22px]">{items.map((item, index) => <PlanItemCard busy={busyItemId === item.itemId} displayOrder={index + 1} item={item} key={item.itemId} sealed={planSealed} onApprove={() => handleApprove(item.itemId)} onDelete={() => setDeleteTargetId(item.itemId)} onSave={(request) => handleUpdate(item.itemId, request)} />)}</div>
               <div className="self-start rounded-bl-[14px] rounded-br-[14px] rounded-tr-[14px] bg-[#fbfafd] px-[22px] py-[18px] text-[13px] font-medium leading-normal text-[#43306d] md:text-[15px]">역할 등록 순서가 맞으면 하단의 버튼을 눌러주세요</div>
               <div className="flex w-full flex-col gap-3 md:gap-4">
                 <Button onClick={handleRegisterRecipients} type="button">

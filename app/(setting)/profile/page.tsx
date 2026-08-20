@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ForwardCaret } from "@/components/ForwardCaret";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { PageContainer } from "@/components/PageContainer";
@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { UserProfileSummary } from "@/components/UserProfileSummary";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import type { ReactNode } from "react";
-import { deactivatePlan, getApiErrorMessage, getMyPlan, getReleaseSettings } from "@/lib/api";
+import { deactivatePlan, getApiErrorMessage, getMyPlan, getReleaseSettings, sealPackage } from "@/lib/api";
 import { deleteCurrentUser } from "@/lib/api/user";
 import { clearAllStoredConversationIds } from "@/lib/api/conversation-storage";
 import { clearTokens } from "@/lib/api/token-storage";
@@ -19,7 +19,7 @@ import { logout } from "@/lib/api/auth";
 import { showSnackbar, showSnackbarAfterNavigation } from "@/lib/ui/snackbar";
 
 const plans = [
-  { label: "계획 버전" },
+  { label: "계획 봉인하기" },
   { label: "담당자 수락", href: "/role?type=manager" },
   { label: "확인자 수락", href: "/role?type=verifier" },
   { label: "대기 이의제기" },
@@ -87,15 +87,43 @@ function Section({ title, children, className = "" }: { title: string; children:
   );
 }
 
-type ConfirmAction = "plan" | "account" | "logout";
+type ConfirmAction = "seal" | "plan" | "account" | "logout";
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
-  const [pendingAction, setPendingAction] = useState<"plan" | "account" | "logout" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"seal" | "plan" | "account" | "logout" | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [planDeactivated, setPlanDeactivated] = useState(false);
+  const [planSealed, setPlanSealed] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
   const [appealPending, setAppealPending] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getMyPlan()
+      .then((plan) => { if (active) setPlanSealed(plan.status === "SEALED"); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const handleSealPlan = async () => {
+    if (pendingAction || planSealed) return;
+    setConfirmAction(null);
+    setPendingAction("seal");
+    setActionMessage("");
+    try {
+      const plan = await getMyPlan();
+      if (plan.status !== "SEALED") await sealPackage(plan.planId);
+      setPlanSealed(true);
+      setActionMessage("계획이 봉인되었습니다.");
+      showSnackbar("계획이 봉인되었습니다.");
+      router.refresh();
+    } catch (error) {
+      setActionMessage(getApiErrorMessage(error, "계획을 봉인하지 못했습니다."));
+    } finally {
+      setPendingAction(null);
+    }
+  };
 
   const handleAppealNavigation = async () => {
     if (appealPending || pendingAction) return;
@@ -193,7 +221,9 @@ export default function ProfileSettingsPage() {
         >
           <div className="flex flex-col gap-3">
             {plans.map((x) => (
-              x.label === "대기 이의제기"
+              x.label === "계획 봉인하기"
+                ? <Row disabled={planSealed || Boolean(pendingAction)} key={x.label} label={planSealed ? "계획 봉인 완료" : x.label} onClick={() => setConfirmAction("seal")} />
+                : x.label === "대기 이의제기"
                 ? <Row disabled={appealPending || Boolean(pendingAction)} key={x.label} label={x.label} onClick={() => void handleAppealNavigation()} />
                 : <Row key={x.label} {...x} />
             ))}
@@ -213,15 +243,17 @@ export default function ProfileSettingsPage() {
       </div>
       {confirmAction && (
         <ConfirmationDialog
-          confirmLabel={confirmAction === "account" ? "삭제하기" : confirmAction === "plan" ? "비활성화하기" : "로그아웃하기"}
+          confirmLabel={confirmAction === "account" ? "삭제하기" : confirmAction === "seal" ? "봉인하기" : confirmAction === "plan" ? "비활성화하기" : "로그아웃하기"}
           description={confirmAction === "account"
             ? <>계정과 모든 계획 데이터가 영구 삭제돼요.<br />삭제한 정보는 다시 복구할 수 없어요.</>
+            : confirmAction === "seal"
+              ? <>계획을 봉인하면 작성한 내용이 최종 확정돼요.<br />봉인 후에는 계획을 수정할 수 없어요.</>
             : confirmAction === "plan"
               ? <>비활성화하면 계획이 더 이상 실행되지 않아요.<br />필요한 내용을 모두 확인한 뒤 진행해 주세요.</>
               : <>로그아웃하면 로그인 화면으로 이동해요.<br />작성 중인 내용이 있다면 먼저 저장해 주세요.</>}
           onCancel={() => setConfirmAction(null)}
-          onConfirm={() => void (confirmAction === "plan" ? handleDeactivatePlan() : confirmAction === "account" ? handleDeleteAccount() : handleLogout())}
-          title={confirmAction === "account" ? "계정을 삭제할까요?" : confirmAction === "plan" ? "계획을 비활성화할까요?" : "로그아웃할까요?"}
+          onConfirm={() => void (confirmAction === "seal" ? handleSealPlan() : confirmAction === "plan" ? handleDeactivatePlan() : confirmAction === "account" ? handleDeleteAccount() : handleLogout())}
+          title={confirmAction === "account" ? "계정을 삭제할까요?" : confirmAction === "seal" ? "계획을 봉인할까요?" : confirmAction === "plan" ? "계획을 비활성화할까요?" : "로그아웃할까요?"}
         />
       )}
       <BottomTabBar activeTab="settings" />
