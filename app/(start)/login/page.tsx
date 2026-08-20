@@ -19,9 +19,6 @@ import {
   type LoginValues,
 } from "@/lib/validation/auth";
 
-const ADMIN_EMAIL = "admin@ieojuda.com";
-const PARTNER_EMAIL = "partner@ieojuda.com";
-
 const fields = [
   {
     id: "email",
@@ -73,13 +70,13 @@ export default function LoginPage() {
 
     try {
       // 로그인 성공 시 토큰을 저장하고 로그인 이후 안내 화면으로 이동합니다.
-      await login(values);
-      if (values.email.toLowerCase() === ADMIN_EMAIL) {
+      const session = await login(values);
+      if (session.role === "ADMIN") {
         showSnackbarAfterNavigation("로그인되었습니다.");
         router.replace("/admin/evidence");
         return;
       }
-      if (values.email.toLowerCase() === PARTNER_EMAIL) {
+      if (session.role === "EXTERNAL") {
         showSnackbarAfterNavigation("로그인되었습니다.");
         router.replace("/evidence");
         return;

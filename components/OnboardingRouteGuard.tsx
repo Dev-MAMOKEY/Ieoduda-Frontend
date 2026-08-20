@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { restoreAuthentication } from "@/lib/api/auth";
+import { getAccessTokenRole, restoreAuthentication } from "@/lib/api/auth";
 import { getConsent, getMyPlan, getRoleChecks } from "@/lib/api/plan";
 import { hasStoredTokens } from "@/lib/api/token-storage";
 
@@ -21,6 +21,16 @@ export function OnboardingRouteGuard({ children, current }: { children: ReactNod
       .then(async (authenticated) => {
         if (!authenticated || !active) {
           setChecking(false);
+          return;
+        }
+
+        const role = getAccessTokenRole();
+        if (role === "ADMIN") {
+          router.replace("/admin/evidence");
+          return;
+        }
+        if (role === "EXTERNAL") {
+          router.replace("/evidence");
           return;
         }
 
