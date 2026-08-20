@@ -100,7 +100,6 @@ export default function ManagerPage() {
   return <PageContainer className="gap-3 pb-10 pt-[70px] md:!px-[120px] md:!pt-0">
     <PageHeader title="역할 담당자 등록" backHref="/life-area" backLabel="계획 작성으로 돌아가기" className="mx-auto max-w-[342px] items-center px-1 py-2 md:max-w-[460px] md:px-0 md:py-0" />
     <form className="mx-auto flex w-full max-w-[342px] flex-col gap-5 pt-3 md:max-w-[460px] md:pt-[38px]" onSubmit={handleSubmit}>
-      {errorMessage && <p className="text-sm text-red-600" role="alert">{errorMessage}</p>}
       {items.map((item, index) => {
         const existing = existingAssignments[item.itemId];
         return <fieldset className="flex w-full flex-col gap-2" key={item.itemId}>
@@ -122,8 +121,9 @@ export default function ManagerPage() {
         </fieldset>;
       })}
       {items.length === 0 && <p className="text-sm text-[#838383]">담당자를 연결할 계획 항목이 없습니다.</p>}
-      <div className="pt-[22px]">
+      <div className="flex flex-col gap-2 pt-[22px]">
         <Button disabled={pending || items.length === 0 || items.every((item) => existingAssignments[item.itemId])} type="submit">{pending ? "등록 중..." : "등록하기"}</Button>
+        {errorMessage && <p className="form-field-error px-2.5 text-sm text-red-600" role="alert">{errorMessage}</p>}
       </div>
     </form>
   </PageContainer>;

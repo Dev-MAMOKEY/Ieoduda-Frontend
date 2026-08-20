@@ -3,12 +3,14 @@
 import { useEffect, type ReactNode } from "react";
 
 export function ConfirmationDialog({
+  cancelLabel = "취소하기",
   confirmLabel,
   description,
   onCancel,
   onConfirm,
   title,
 }: {
+  cancelLabel?: string;
   confirmLabel: string;
   description: ReactNode;
   onCancel: () => void;
@@ -40,7 +42,7 @@ export function ConfirmationDialog({
         </div>
         <div className="mt-7 grid grid-cols-2 gap-3 lg:mt-8 lg:gap-4">
           <button autoFocus className="flex min-h-11 items-center justify-center rounded-[14px] bg-[#e2dafa] px-4 py-3.5 text-center text-sm font-medium leading-none text-[#43306d] transition-colors hover:bg-[#d6caef] lg:min-h-12 lg:text-base" onClick={onCancel} type="button">
-            <span className="translate-y-px">취소하기</span>
+            <span className="translate-y-px">{cancelLabel}</span>
           </button>
           <button className="flex min-h-11 items-center justify-center rounded-[14px] bg-[#43306d] px-4 py-3.5 text-center text-sm font-medium leading-none text-[#fbfafd] transition-colors hover:bg-[#332452] lg:min-h-12 lg:text-base" onClick={onConfirm} type="button">
             <span className="translate-y-px">{confirmLabel}</span>

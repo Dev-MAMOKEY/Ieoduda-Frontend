@@ -15,11 +15,21 @@ import {
 } from "@/lib/api";
 import { showSnackbar } from "@/lib/ui/snackbar";
 
+function MissingRoleNotice({ description, title }: { description: string; title: string }) {
+  return (
+    <div className="flex w-full flex-col gap-2 rounded-[16px] bg-[#f3f3ff] px-5 py-[18px] text-[#43306d]" role="status">
+      <strong className="text-sm font-bold md:text-base">{title}</strong>
+      <p className="text-[13px] font-medium leading-normal text-[#796b6c] md:text-[15px]">{description}</p>
+    </div>
+  );
+}
+
 function RoleContent() {
   const searchParams = useSearchParams();
   const requested = searchParams.get("person");
   const requestedType = searchParams.get("type");
   const [people, setPeople] = useState<Awaited<ReturnType<typeof getRoleInspectionPeople>>>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(requested);
   const [errorMessage, setErrorMessage] = useState("");
   const [resendPending, setResendPending] = useState(false);
@@ -37,7 +47,8 @@ function RoleContent() {
           return next[0]?.id ?? null;
         });
       })
-      .catch((error: unknown) => setErrorMessage(error instanceof Error ? error.message : "역할 정보를 불러오지 못했습니다."));
+      .catch((error: unknown) => setErrorMessage(error instanceof Error ? error.message : "역할 정보를 불러오지 못했습니다."))
+      .finally(() => setLoading(false));
   }, [requestedType]);
   useEffect(() => {
     const selector = selectorRef.current;
@@ -68,11 +79,27 @@ function RoleContent() {
       window.removeEventListener("resize", measure);
     };
   }, [people]);
-  const person = people.find((item) => item.id === selectedId) ?? people[0];
-  if (!person) return <PageContainer className="pt-[70px] text-center text-sm text-[#796b6c]">{errorMessage || "역할 정보를 불러오는 중입니다."}</PageContainer>;
-  const verifier = person.type === "verifier";
   const managers = people.filter((item) => item.type !== "verifier");
   const verifiers = people.filter((item) => item.type === "verifier");
+
+  if (loading) return <PageContainer className="pt-[70px] text-center text-sm text-[#796b6c]" role="status">역할 정보를 불러오는 중입니다.</PageContainer>;
+  if (errorMessage && people.length === 0) return <PageContainer className="pt-[70px] text-center text-sm text-red-600" role="alert">{errorMessage}</PageContainer>;
+
+  const person = people.find((item) => item.id === selectedId) ?? people[0];
+  if (!person) return (
+    <PageContainer className="role-preview gap-3 pb-[100px] pt-[70px] lg:max-w-none lg:px-[120px] lg:pb-20 lg:pt-0">
+      <PageHeader className="items-center px-1 py-2 md:px-0 md:py-0" title="역할 점검" />
+      <div className="mx-auto flex w-full max-w-[342px] flex-col gap-[30px] pt-1 md:max-w-[460px] md:pt-[18px]">
+        <InspectionNavigation active="role" />
+        <section className="flex flex-col gap-3">
+          <MissingRoleNotice description="등록된 역할 담당자가 없습니다. 계획에 역할 담당자를 등록해 주세요." title="역할 담당자 미등록" />
+          <MissingRoleNotice description="등록된 지정 확인자가 없습니다. 지정 확인자를 등록해 주세요." title="지정 확인자 미등록" />
+        </section>
+      </div>
+      <BottomTabBar activeTab="inspection" />
+    </PageContainer>
+  );
+  const verifier = person.type === "verifier";
 
   const personButton = (item: (typeof people)[number]) => (
     <button
@@ -107,6 +134,12 @@ function RoleContent() {
       <div className="mx-auto flex w-full max-w-[342px] flex-col gap-[30px] pt-1 md:max-w-[460px] md:pt-[18px]">
         <InspectionNavigation active="role" />
         <section className="flex flex-col gap-10 pb-5">
+        {(managers.length === 0 || verifiers.length === 0) && (
+          <div className="flex flex-col gap-3">
+            {managers.length === 0 ? <MissingRoleNotice description="등록된 역할 담당자가 없습니다. 계획에 역할 담당자를 등록해 주세요." title="역할 담당자 미등록" /> : null}
+            {verifiers.length === 0 ? <MissingRoleNotice description="등록된 지정 확인자가 없습니다. 계획에 지정 확인자를 등록해 주세요." title="지정 확인자 미등록" /> : null}
+          </div>
+        )}
         <div
           className={`flex w-full items-center gap-2 px-1 lg:self-center ${fitsDesktopRow ? "flex-nowrap" : "flex-wrap"}`}
           ref={selectorRef}

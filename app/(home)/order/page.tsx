@@ -56,7 +56,7 @@ export default function OrderPage() {
       setPlanId(plan.planId);
       setItems(order.items);
       itemsRef.current = order.items;
-      setHasConflict(order.hasConflict);
+      setHasConflict(order.items.some((item) => item.conflict));
     }).catch((error) => setErrorMessage(getApiErrorMessage(error, "실행 순서를 불러오지 못했습니다.")));
   }, []);
 
@@ -81,10 +81,17 @@ export default function OrderPage() {
     setReordering(true);
     setErrorMessage("");
     try {
-      const checked = await reorderPlanItems(planId, itemsRef.current.map((item) => item.itemId));
-      setItems(checked.items);
-      itemsRef.current = checked.items;
-      setHasConflict(checked.hasConflict);
+      const saved = await reorderPlanItems(planId, itemsRef.current.map((item) => item.itemId));
+      let latest = saved;
+      try {
+        // 순서 저장 직후 최신 조회 결과로 다시 동기화해 충돌과 경고 상태가 섞이지 않도록 합니다.
+        latest = await getOrderCheck(planId);
+      } catch {
+        setErrorMessage("순서는 저장됐지만 최신 점검 결과를 다시 불러오지 못했습니다.");
+      }
+      setItems(latest.items);
+      itemsRef.current = latest.items;
+      setHasConflict(latest.items.some((item) => item.conflict));
     } catch (error) {
       setItems(dragStartItemsRef.current);
       itemsRef.current = dragStartItemsRef.current;

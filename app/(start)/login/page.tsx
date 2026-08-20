@@ -96,7 +96,7 @@ export default function LoginPage() {
       const roleChecks = await getRoleChecks(plan.planId);
       const hasConfirmer = roleChecks.some((role) => role.type === "CONFIRMER");
       showSnackbarAfterNavigation("로그인되었습니다.");
-      router.replace(hasConfirmer ? "/plan" : "/plan-info");
+      router.replace(hasConfirmer ? "/plan" : "/verifier");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "로그인에 실패했습니다."));
       setPending(false);

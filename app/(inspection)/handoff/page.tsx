@@ -55,7 +55,18 @@ function HandoffGroup({ people, type }: { people: HandoffPerson[]; type: "담당
         <span className="text-sm font-bold text-[#796b6c] lg:text-[#584e4d]">{members.filter((person) => person.complete).length}명 점검 완료</span>
       </div>
       <div className="flex flex-col gap-[14px] lg:gap-5">
-        {members.map((person) => <HandoffCard key={person.name} person={person} />)}
+        {members.length > 0
+          ? members.map((person) => <HandoffCard key={person.name} person={person} />)
+          : (
+            <div className="flex flex-col gap-2 rounded-[16px] bg-[#f3f3ff] px-5 py-[18px] text-[#43306d]" role="status">
+              <strong className="text-sm font-bold lg:text-base">{type === "담당자" ? "역할 담당자 미등록" : "지정 확인자 미등록"}</strong>
+              <p className="text-[13px] font-medium leading-normal text-[#796b6c] lg:text-[15px]">
+                {type === "담당자"
+                  ? "등록된 역할 담당자가 없어 점검할 인계 상태가 없습니다."
+                  : "등록된 지정 확인자가 없어 점검할 확인 상태가 없습니다."}
+              </p>
+            </div>
+          )}
       </div>
     </section>
   );
@@ -63,11 +74,13 @@ function HandoffGroup({ people, type }: { people: HandoffPerson[]; type: "담당
 
 export default function HandoffInspectionPage() {
   const [people, setPeople] = useState<HandoffPerson[]>([]);
+  const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   useEffect(() => {
     getHandoffInspectionPeople()
       .then(setPeople)
-      .catch((error: unknown) => setErrorMessage(error instanceof Error ? error.message : "인계 점검 정보를 불러오지 못했습니다."));
+      .catch((error: unknown) => setErrorMessage(error instanceof Error ? error.message : "인계 점검 정보를 불러오지 못했습니다."))
+      .finally(() => setLoading(false));
   }, []);
   return (
     <PageContainer className="role-preview gap-0 pb-[100px] pt-[70px] lg:min-h-[calc(100dvh-125px)] lg:max-w-none lg:px-[120px] lg:pb-20 lg:pt-0">
@@ -79,9 +92,13 @@ export default function HandoffInspectionPage() {
         <InspectionNavigation active="handoff" />
         <div className="flex flex-col gap-[26px] lg:gap-[60px]">
           {errorMessage && <p className="text-center text-sm text-red-700" role="alert">{errorMessage}</p>}
-          {!errorMessage && people.length === 0 && <p className="text-center text-sm text-[#796b6c]">인계 점검 정보를 불러오는 중입니다.</p>}
-          <HandoffGroup people={people} type="담당자" />
-          <HandoffGroup people={people} type="확인자" />
+          {loading && !errorMessage ? <p className="text-center text-sm text-[#796b6c]" role="status">인계 점검 정보를 불러오는 중입니다.</p> : null}
+          {!loading && !errorMessage ? (
+            <>
+              <HandoffGroup people={people} type="담당자" />
+              <HandoffGroup people={people} type="확인자" />
+            </>
+          ) : null}
         </div>
       </div>
       <BottomTabBar activeTab="inspection" />
