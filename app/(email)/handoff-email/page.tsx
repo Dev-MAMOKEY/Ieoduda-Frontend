@@ -40,11 +40,12 @@ export default function HandoffEmailPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [otpMessage, setOtpMessage] = useState("");
+  const [maskedRecipientEmail, setMaskedRecipientEmail] = useState("");
   const accessLoaded = useRef(false);
   const requestInFlight = useRef(false);
   const token = () => new URLSearchParams(window.location.search).get("token") ?? "";
   useEffect(() => { if (accessLoaded.current) return; accessLoaded.current = true; const value = token(); if (!value) { queueMicrotask(() => setError("유효한 인계 토큰이 필요합니다.")); return; } getPosthumousAccess(value).then(setAccess).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "인계 정보를 불러오지 못했습니다.")); }, []);
-  const sendOtp = async () => { const value = token(); if (!value || requestInFlight.current) return; requestInFlight.current = true; setPending(true); setError(""); setOtpMessage(""); try { await sendPosthumousOtp(value); setOtpMessage("인증번호를 발송했습니다. 이메일을 확인해 주세요."); } catch (reason) { setError(reason instanceof Error ? reason.message : "인증번호를 발송하지 못했습니다."); } finally { requestInFlight.current = false; setPending(false); } };
+  const sendOtp = async () => { const value = token(); if (!value || requestInFlight.current) return; requestInFlight.current = true; setPending(true); setError(""); setOtpMessage(""); try { const result = await sendPosthumousOtp(value); setMaskedRecipientEmail(result.maskedEmail); setOtpMessage("인증번호를 발송했습니다. 이메일을 확인해 주세요."); } catch (reason) { setError(reason instanceof Error ? reason.message : "인증번호를 발송하지 못했습니다."); } finally { requestInFlight.current = false; setPending(false); } };
   const verify = async () => { const value = token(); if (!value || requestInFlight.current) return; requestInFlight.current = true; setPending(true); try { const result = await verifyPosthumousOtp(value, code.join("")); router.push("/package?accessSessionId=" + encodeURIComponent(result.accessSessionId)); } catch (reason) { setError(reason instanceof Error ? reason.message : "인증번호를 확인하지 못했습니다."); } finally { requestInFlight.current = false; setPending(false); } };
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] items-center px-[120px] lg:flex"><BrandLogo /></header>
@@ -80,7 +81,7 @@ export default function HandoffEmailPage() {
           <button className="text-xs leading-none underline underline-offset-2 lg:text-sm lg:font-semibold lg:text-[#28292e]" disabled={pending} onClick={() => void sendOtp()} type="button">코드 재발송</button>
 
           <p className="text-xs font-medium leading-normal text-[#796b6c] lg:text-[15px] lg:text-[#584e4d]">
-            <span>{access?.contactEmail ?? "등록된 이메일"}로 인증 코드를 보냈어요.</span>
+            <span>{maskedRecipientEmail ? `${maskedRecipientEmail}로 인증 코드를 보냈어요.` : "인증번호를 발송하면 수신 이메일을 확인할 수 있어요."}</span>
           </p>
 
           <ActionButton disabled={pending || code.some((digit) => !digit)} onClick={() => void verify()} secondary>이메일 링크 열기</ActionButton>
