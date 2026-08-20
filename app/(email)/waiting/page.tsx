@@ -80,12 +80,11 @@ export default function WaitingPage() {
   }, []);
   const cancel = async () => {
     const caseId = query().get("caseId");
-    const token = query().get("token");
-    if (!caseId || !token) return setError("유효한 취소 링크 정보가 필요합니다.");
+    if (!caseId) return setError("유효한 사건 정보가 필요합니다.");
     if (requestInFlight.current) return;
     requestInFlight.current = true;
     setPending(true);
-    try { setStatus(await cancelReleaseCase(caseId, token)); } catch (reason) { setError(reason instanceof Error ? reason.message : "절차를 취소하지 못했습니다."); } finally { requestInFlight.current = false; setPending(false); }
+    try { setStatus(await cancelReleaseCase(caseId)); } catch (reason) { setError(reason instanceof Error ? reason.message : "절차를 취소하지 못했습니다."); } finally { requestInFlight.current = false; setPending(false); }
   };
   const appeal = async () => {
     const params = query();
