@@ -190,6 +190,13 @@ export async function updateDisputeContact(planId: ApiId, contactId: ApiId, name
   return data.data;
 }
 
+export async function resendDisputeContactVerificationEmail(contactId: ApiId) {
+  const { data } = await apiClient.post<PlanApiResponse<unknown>>(
+    "/api/dispute-contacts/" + contactId + "/verification-email",
+  );
+  return unwrap(data);
+}
+
 export async function deactivatePlan(planId: ApiId) {
   const { data } = await apiClient.post("/api/plans/" + planId + "/deactivate");
   return data.data;

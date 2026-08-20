@@ -85,6 +85,18 @@ export async function verifyPosthumousOtp(token: string, otpCode: string) {
   const { data } = await publicApiClient.post<ApiResponse<OtpVerifyResponse>>("/api/posthumous-access/" + token + "/verify", { otpCode });
   return unwrap(data);
 }
+export async function verifySelfWarningEmail(token: string) {
+  const { data } = await publicApiClient.post<ApiResponse<null>>(
+    "/api/self-warning-email/" + encodeURIComponent(token) + "/verify",
+  );
+  if (!data.success) throw new Error(data.error?.message ?? "본인 경고 이메일을 확인하지 못했습니다.");
+}
+export async function verifyDisputeContactEmail(token: string) {
+  const { data } = await publicApiClient.post<ApiResponse<null>>(
+    "/api/dispute-contacts/" + encodeURIComponent(token) + "/verify",
+  );
+  if (!data.success) throw new Error(data.error?.message ?? "이의 제기 연락처를 확인하지 못했습니다.");
+}
 export async function getPosthumousPackage(accessSessionId: string) {
   const { data } = await publicApiClient.get<ApiResponse<PosthumousPackageResponse>>("/api/posthumous-packages/" + accessSessionId);
   return unwrap(data);

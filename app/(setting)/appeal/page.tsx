@@ -11,6 +11,7 @@ import {
   getReleaseSettings,
   registerDisputeContact,
   registerSelfWarningEmail,
+  resendDisputeContactVerificationEmail,
   updateDisputeContact,
   updateReleasePolicy,
 } from "@/lib/api/plan";
@@ -48,8 +49,13 @@ export default function AppealPage() {
   const [selfEmail, setSelfEmail] = useState("");
   const [planId, setPlanId] = useState<ApiId | null>(null);
   const [contactId, setContactId] = useState<ApiId | null>(null);
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactVerified, setContactVerified] = useState(false);
   const [verificationPending, setVerificationPending] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
+  const [contactVerificationPending, setContactVerificationPending] = useState(false);
+  const [contactVerificationMessage, setContactVerificationMessage] = useState("");
   const [submissionPending, setSubmissionPending] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState("");
 
@@ -61,12 +67,64 @@ export default function AppealPage() {
         setSelfEmail(settings.selfWarningEmail ?? "");
         setSelfVerified(settings.selfWarningEmailVerified);
         setContactId(settings.disputeContact?.contactId ?? null);
+        setContactName(settings.disputeContact?.name ?? "");
+        setContactEmail(settings.disputeContact?.email ?? "");
+        setContactVerified(settings.disputeContact?.verified ?? false);
       })
       .catch(() => { /* 신규 등록 화면은 기존 설정 조회 실패와 관계없이 입력할 수 있습니다. */ });
   }, []);
 
   const clearError = (name: FieldName) => {
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
+  };
+
+  const handleVerifyContactEmail = async (event: MouseEvent<HTMLButtonElement>) => {
+    const form = event.currentTarget.form;
+    const data = new FormData(form ?? undefined);
+    const name = String(data.get("contactName") ?? "").trim();
+    const email = String(data.get("contactEmail") ?? "").trim();
+    const errors: FieldErrors = {};
+
+    if (!name) errors.contactName = "이의 제기 연락처의 이름을 입력해 주세요.";
+    if (!email) errors.contactEmail = "이의 제기 연락처의 이메일을 입력해 주세요.";
+    else if (!emailPattern.test(email)) errors.contactEmail = "올바른 이메일 형식으로 입력해 주세요.";
+
+    setFieldErrors((current) => ({ ...current, ...errors }));
+    if (Object.keys(errors).length > 0) {
+      setContactVerified(false);
+      return;
+    }
+
+    setContactVerificationPending(true);
+    setContactVerificationMessage("");
+    try {
+      const currentPlanId = planId ?? (await getMyPlan()).planId;
+      setPlanId(currentPlanId);
+      const settings = await getReleaseSettings(currentPlanId);
+      const currentContact = settings.disputeContact;
+      const isSameContact = currentContact?.name === name
+        && currentContact.email.toLowerCase() === email.toLowerCase();
+
+      if (currentContact && isSameContact) {
+        await resendDisputeContactVerificationEmail(currentContact.contactId);
+        setContactId(currentContact.contactId);
+      } else {
+        const result = currentContact
+          ? await updateDisputeContact(currentPlanId, currentContact.contactId, name, email)
+          : await registerDisputeContact(currentPlanId, name, email);
+        setContactId(result.contactId ?? currentContact?.contactId ?? null);
+      }
+
+      setContactName(name);
+      setContactEmail(email);
+      setContactVerified(false);
+      setContactVerificationMessage("검증 메일을 보냈어요. 이메일의 링크를 눌러 검증을 완료해 주세요.");
+    } catch (error) {
+      setContactVerified(false);
+      setContactVerificationMessage(getApiErrorMessage(error, "검증 메일을 보내지 못했습니다."));
+    } finally {
+      setContactVerificationPending(false);
+    }
   };
 
   const handleVerifyEmail = async (event: MouseEvent<HTMLButtonElement>) => {
@@ -195,11 +253,14 @@ export default function AppealPage() {
             <div className="flex flex-col gap-3.5 md:gap-[22px]">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-[#43306d] md:text-lg">이의 제기 연락처</h2>
-                <span className="text-sm font-bold text-[#796b6c] md:text-base">검증 요망</span>
+                <span className="text-sm font-bold text-[#796b6c] md:text-base">{contactVerified ? "검증 완료" : "검증 필요"}</span>
               </div>
-              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactName)} className={`${inputClass} ${fieldErrors.contactName ? "border-red-500" : "border-transparent"}`} name="contactName" onChange={() => clearError("contactName")} placeholder="이름을 입력해 주세요" />{fieldErrors.contactName && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactName}</p>}</div>
-              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactEmail)} className={`${inputClass} ${fieldErrors.contactEmail ? "border-red-500" : "border-transparent"}`} name="contactEmail" onChange={() => clearError("contactEmail")} placeholder="이메일을 입력해 주세요" type="email" />{fieldErrors.contactEmail && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactEmail}</p>}</div>
+              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactName)} className={`${inputClass} ${fieldErrors.contactName ? "border-red-500" : "border-transparent"}`} name="contactName" onChange={(event) => { setContactName(event.target.value); clearError("contactName"); setContactVerified(false); setContactVerificationMessage(""); }} placeholder="이름을 입력해 주세요" value={contactName} />{fieldErrors.contactName && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactName}</p>}</div>
+              <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.contactEmail)} className={`${inputClass} ${fieldErrors.contactEmail ? "border-red-500" : "border-transparent"}`} name="contactEmail" onChange={(event) => { setContactEmail(event.target.value); clearError("contactEmail"); setContactVerified(false); setContactVerificationMessage(""); }} placeholder="이메일을 입력해 주세요" type="email" value={contactEmail} />{fieldErrors.contactEmail && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.contactEmail}</p>}{contactVerificationMessage && <p className="px-2.5 text-xs font-medium text-[#796b6c]" role="status">{contactVerificationMessage}</p>}</div>
             </div>
+            <Button className="cursor-pointer text-sm hover:!bg-[#37275a] md:text-base" disabled={contactVerificationPending || contactVerified} onClick={handleVerifyContactEmail} type="button">
+              {contactVerificationPending ? "검증 메일 보내는 중..." : contactVerified ? "검증 완료" : "검증 메일 보내기"}
+            </Button>
             <div className="flex flex-col gap-3.5 md:gap-[22px]">
               <h2 className="text-base font-bold text-[#43306d] md:text-lg">대기 기간</h2>
               <div className="flex flex-col gap-2"><input aria-invalid={Boolean(fieldErrors.waitingPeriod)} className={`${inputClass} ${fieldErrors.waitingPeriod ? "border-red-500" : "border-transparent"}`} inputMode="numeric" max={30} min={7} name="waitingPeriod" onChange={() => clearError("waitingPeriod")} placeholder="대기 기간을 입력해 주세요 (7-30일)" step={1} type="number" />{fieldErrors.waitingPeriod && <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{fieldErrors.waitingPeriod}</p>}</div>
@@ -207,7 +268,7 @@ export default function AppealPage() {
           </div>
         </section>
         {submissionMessage && <p className="text-center text-sm text-red-700" role="alert">{submissionMessage}</p>}
-        <Button className="cursor-pointer !bg-[#7f62b8] text-sm hover:!bg-[#765aaa] md:text-base" disabled={submissionPending || verificationPending} type="submit">
+        <Button className="cursor-pointer !bg-[#7f62b8] text-sm hover:!bg-[#765aaa] md:text-base" disabled={submissionPending || verificationPending || contactVerificationPending} type="submit">
           {submissionPending ? "등록 중..." : "대기 이의제기 등록하기"}
         </Button>
         </form>
