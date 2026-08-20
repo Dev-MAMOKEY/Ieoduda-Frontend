@@ -17,7 +17,7 @@ const dateFields = [
 ] as const;
 
 function getValidDeathDate(date: string[]) {
-  if (date.every((part) => !part)) return undefined;
+  if (date.every((part) => !part)) throw new Error("사망하신 날짜를 입력하거나 정확한 날짜를 모른다고 선택해 주세요.");
   if (date.some((part) => !part)) throw new Error("사망 날짜는 연도, 월, 일을 모두 입력해 주세요.");
 
   const [year, month, day] = date.map(Number);
@@ -36,18 +36,26 @@ export default function DeathReportPage() {
   const [unknownDate, setUnknownDate] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [dateError, setDateError] = useState("");
   const requestInFlight = useRef(false);
   const ownerName = invitation?.ownerName ?? "계획 작성자";
   const submit = async () => {
     const searchParams = new URLSearchParams(window.location.search);
     const token = searchParams.get("token") ?? "";
     if (!token) return setError("유효한 신고 토큰이 필요합니다.");
+    let deathDate: string | undefined;
+    try {
+      deathDate = unknownDate ? undefined : getValidDeathDate(date);
+      setDateError("");
+    } catch (reason) {
+      setDateError(reason instanceof Error ? reason.message : "사망하신 날짜를 확인해 주세요.");
+      return;
+    }
     if (requestInFlight.current) return;
     requestInFlight.current = true;
     setPending(true);
     setError("");
     try {
-      const deathDate = unknownDate ? undefined : getValidDeathDate(date);
       const result = await reportDeath(token, deathDate);
       const params = new URLSearchParams();
       params.set("token", result.evidenceUploadToken);
@@ -114,7 +122,7 @@ export default function DeathReportPage() {
                     max={field.max}
                     min={field.min}
                     disabled={unknownDate}
-                    onChange={(event) => setDate((current) => current.map((value, itemIndex) => itemIndex === index ? event.target.value : value))}
+                    onChange={(event) => { setDate((current) => current.map((value, itemIndex) => itemIndex === index ? event.target.value : value)); setDateError(""); }}
                     placeholder={field.label}
                     type={field.type}
                     value={date[index]}
@@ -127,7 +135,7 @@ export default function DeathReportPage() {
                   <input
                     className="peer size-full cursor-pointer appearance-none rounded-full border border-[#584e4d] bg-transparent checked:border-[#43306d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d]"
                     checked={unknownDate}
-                    onChange={(event) => setUnknownDate(event.target.checked)}
+                    onChange={(event) => { setUnknownDate(event.target.checked); setDateError(""); }}
                     type="checkbox"
                   />
                   <span aria-hidden="true" className="pointer-events-none absolute inset-0 hidden items-center justify-center peer-checked:flex">
@@ -136,6 +144,7 @@ export default function DeathReportPage() {
                 </span>
                 정확한 날짜를 모르겠어요.
               </label>
+              {dateError ? <p className="px-2.5 text-xs font-medium text-red-600" role="alert">{dateError}</p> : null}
             </section>
 
             <aside className="flex flex-col items-start rounded-[16px] bg-[#f3f3ff] px-5 pb-[22px] pt-[18px] lg:rounded-[20px] lg:px-[22px]">

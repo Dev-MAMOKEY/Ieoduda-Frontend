@@ -5,10 +5,8 @@ import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/Button";
 import { PageHeader } from "@/components/PageHeader";
 import { useEffect, useState } from "react";
-import { decidePartnerReview, getPartnerReview } from "@/lib/api/partner";
+import { decidePartnerReview, downloadPartnerReviewFile, getPartnerReview } from "@/lib/api/partner";
 import type { PartnerReview } from "@/lib/api/partner-types";
-
-const evidenceTitle = { DEATH_CERTIFICATE: "사망 진단서", DEATH_REPORT: "사망 신고서", POSTMORTEM_REPORT: "검안서" } as const;
 
 function DocumentSheet() {
   return <div aria-label="증빙 문서 미리보기" className="flex h-[300px] w-[230px] flex-col items-center gap-5 border border-[#d7d0d0] bg-white px-5 py-[21px] lg:h-auto lg:w-[340px] lg:border-[1.4px] lg:p-5">
@@ -27,6 +25,7 @@ export default function ExternalReviewPage() {
   const [review, setReview] = useState<PartnerReview | null>(null);
   const [memo, setMemo] = useState("");
   const [pending, setPending] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
     const reviewId = new URLSearchParams(window.location.search).get("doc");
@@ -43,7 +42,27 @@ export default function ExternalReviewPage() {
     catch (reason) { setError(reason instanceof Error ? reason.message : "검토 결과를 저장하지 못했습니다."); }
     finally { setPending(false); }
   };
-  const document = review ? { owner: review.targetName, title: evidenceTitle[review.evidenceType], submittedAt: new Date(review.submittedAt).toLocaleString("ko-KR") } : { owner: "", title: "증빙 자료", submittedAt: "확인 중" };
+  const downloadOriginal = async () => {
+    if (!review || downloading) return;
+    setDownloading(true);
+    setError("");
+    try {
+      const blob = await downloadPartnerReviewFile(review.reviewId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = review.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "증빙 원본을 다운로드하지 못했습니다.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+  const documentInfo = review ? { owner: review.targetName, title: review.fileName, submittedAt: new Date(review.submittedAt).toLocaleString("ko-KR") } : { owner: "", title: "증빙 자료", submittedAt: "확인 중" };
 
   return <main className="min-h-dvh text-[#43306d]">
     <header className="hidden h-[125px] items-center px-[120px] lg:flex"><BrandLogo /></header>
@@ -52,18 +71,18 @@ export default function ExternalReviewPage() {
       <PageHeader backHref="/evidence" className="mb-[22px] py-2 lg:hidden" title="" />
       <header className="hidden w-[460px] grid-cols-[24px_1fr_24px] items-center lg:grid">
         <BackButton href="/evidence" label="등록된 증빙 자료로 돌아가기" />
-        <h1 className="text-center text-xl font-bold leading-none">{document.owner}님의 증빙 자료</h1>
+        <h1 className="text-center text-xl font-bold leading-none">{documentInfo.owner}님의 증빙 자료</h1>
         <span aria-hidden className="size-6" />
       </header>
 
       <div className="flex w-full flex-col gap-[22px] lg:mt-[50px] lg:w-[460px] lg:gap-5">
-        <section className="flex w-full flex-col items-center gap-[18px] rounded-[20px] bg-[#fbfafd] px-5 py-6 lg:gap-[60px] lg:py-9">
+        <button aria-label={`${documentInfo.title} 원본 다운로드`} className="flex w-full flex-col items-center gap-[18px] rounded-[20px] bg-[#fbfafd] px-5 py-6 transition-shadow hover:shadow-[0_4px_16px_rgba(67,48,109,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43306d] disabled:cursor-wait disabled:opacity-60 lg:gap-[60px] lg:py-9" disabled={!review || downloading} onClick={() => void downloadOriginal()} type="button">
           <header className="flex flex-col items-center gap-2 text-center lg:gap-3">
-            <h2 className="text-base font-bold leading-none lg:text-lg">{document.title}.pdf</h2>
-            <p className="text-xs font-medium leading-none text-[#796b6c] lg:text-sm">제출일 {document.submittedAt}</p>
+            <h2 className="text-base font-bold leading-none lg:text-lg">{documentInfo.title}</h2>
+            <p className="text-xs font-medium leading-none text-[#796b6c] lg:text-sm">제출일 {documentInfo.submittedAt}</p>
           </header>
           <DocumentSheet />
-        </section>
+        </button>
 
         <section className="flex flex-col gap-3 lg:gap-5">
           <div className="flex flex-col items-center gap-1.5 py-0 text-center text-xs leading-none text-[#796b6c] lg:gap-2 lg:pb-2.5 lg:pt-0.5 lg:text-sm">
