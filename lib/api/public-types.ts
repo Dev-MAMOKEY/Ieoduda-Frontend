@@ -63,6 +63,12 @@ export interface ReleaseStatusResponse {
   canceledAt: string | null;
 }
 
+export type WaitingAvailableAction = "CANCEL" | "RAISE_OBJECTION";
+
+export interface PublicWaitingStatusResponse extends ReleaseStatusResponse {
+  availableAction: WaitingAvailableAction;
+}
+
 export interface HandoverStageResponse {
   stageId: string;
   stageOrder: number;

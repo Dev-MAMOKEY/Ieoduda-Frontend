@@ -16,6 +16,7 @@ import type {
   PackageIssueResponse,
   PosthumousAccessResponse,
   PosthumousPackageResponse,
+  PublicWaitingStatusResponse,
   RecipientInviteDecisionResponse,
   RecipientInviteResponse,
   ReleaseStatusResponse,
@@ -48,6 +49,13 @@ export async function decideRecipientInvitation(token: string, decision: "accept
 }
 export async function getWaitingStatus(caseId: string) {
   const { data } = await apiClient.get<ApiResponse<ReleaseStatusResponse>>("/api/release-cases/" + caseId + "/waiting");
+  return unwrap(data);
+}
+export async function getPublicWaitingStatus(caseId: string, token: string) {
+  const { data } = await publicApiClient.get<ApiResponse<PublicWaitingStatusResponse>>(
+    "/api/release-cases/" + caseId + "/waiting/status",
+    { params: { token } },
+  );
   return unwrap(data);
 }
 export async function cancelReleaseCase(caseId: string, token?: string) {

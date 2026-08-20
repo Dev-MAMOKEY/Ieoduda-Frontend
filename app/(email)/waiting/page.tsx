@@ -7,8 +7,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { getApiErrorMessage } from "@/lib/api/auth";
-import { cancelReleaseCase, createObjection, getWaitingStatus } from "@/lib/api/public";
-import type { ReleaseStatusResponse } from "@/lib/api/public-types";
+import { cancelReleaseCase, createObjection, getPublicWaitingStatus } from "@/lib/api/public";
+import type { PublicWaitingStatusResponse, WaitingAvailableAction } from "@/lib/api/public-types";
 
 function ActionButton({ children, disabled, onClick, secondary = false }: { children: string; disabled?: boolean; onClick?: () => void; secondary?: boolean }) {
   const colorClass = secondary
@@ -63,11 +63,12 @@ function NoticeCard({
 }
 
 export default function WaitingPage() {
-  const [status, setStatus] = useState<ReleaseStatusResponse | null>(null);
+  const [status, setStatus] = useState<PublicWaitingStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [disputeToken, setDisputeToken] = useState("");
+  const [actionToken, setActionToken] = useState("");
+  const [completedAction, setCompletedAction] = useState<WaitingAvailableAction | null>(null);
   const statusLoaded = useRef(false);
   const requestInFlight = useRef(false);
   const query = () => new URLSearchParams(window.location.search);
@@ -76,25 +77,26 @@ export default function WaitingPage() {
     statusLoaded.current = true;
     const params = query();
     const caseId = params.get("caseId");
-    setDisputeToken(params.get("disputeToken") ?? "");
-    if (!caseId) { queueMicrotask(() => { setError("유효한 공개 절차 정보가 필요합니다."); setLoading(false); }); return; }
-    getWaitingStatus(caseId)
+    const token = params.get("token") ?? params.get("disputeToken") ?? "";
+    setActionToken(token);
+    if (!caseId || !token) { queueMicrotask(() => { setError("유효한 공개 절차 정보가 필요합니다."); setLoading(false); }); return; }
+    getPublicWaitingStatus(caseId, token)
       .then(setStatus)
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "대기 정보를 불러오지 못했습니다."))
+      .catch((reason: unknown) => setError(getApiErrorMessage(reason, "대기 정보를 불러오지 못했습니다.")))
       .finally(() => setLoading(false));
   }, []);
   const cancel = async () => {
     const caseId = query().get("caseId");
-    if (!caseId) return setError("유효한 사건 정보가 필요합니다.");
+    if (!caseId || !actionToken) return setError("유효한 취소 링크 정보가 필요합니다.");
     if (requestInFlight.current) return;
     requestInFlight.current = true;
     setPending(true);
     setError("");
     try {
-      setStatus(await cancelReleaseCase(caseId));
+      await cancelReleaseCase(caseId, actionToken);
+      setCompletedAction("CANCEL");
     } catch (reason) {
       if (axios.isAxiosError(reason) && reason.response?.status === 409) {
-        try { setStatus(await getWaitingStatus(caseId)); } catch { /* 최신 상태 재조회 실패 시 기존 상태를 유지합니다. */ }
         setError("현재 사건 상태에서는 취소할 수 없습니다.");
       } else {
         setError(getApiErrorMessage(reason, "절차를 취소하지 못했습니다."));
@@ -107,7 +109,7 @@ export default function WaitingPage() {
   const appeal = async () => {
     const params = query();
     const caseId = params.get("caseId") ?? "";
-    if (!caseId || !disputeToken) return setError("유효한 이의 제기 링크 정보가 필요합니다.");
+    if (!caseId || !actionToken) return setError("유효한 이의 제기 링크 정보가 필요합니다.");
     if (requestInFlight.current) return;
     const objectionReason = window.prompt("이의 제기 사유를 입력해 주세요.")?.trim() ?? "";
     if (!objectionReason) return;
@@ -115,8 +117,8 @@ export default function WaitingPage() {
     setPending(true);
     setError("");
     try {
-      await createObjection(caseId, disputeToken, objectionReason);
-      setStatus(await getWaitingStatus(caseId));
+      await createObjection(caseId, actionToken, objectionReason);
+      setCompletedAction("RAISE_OBJECTION");
     } catch (reason) {
       setError(
         axios.isAxiosError(reason) && reason.response?.status === 401
@@ -156,15 +158,24 @@ export default function WaitingPage() {
             </div>
           </section>
 
-          <NoticeCard disabled={pending || !status?.hasActiveCase || status.status !== "WAITING"} onClick={() => void cancel()} title="실행을 멈추시고 싶으신가요?">
-            <p>본인이라면 전체 절차를 즉시 취소할 수 있어요.</p>
-            <p>멈추면 아무것도 실행되지 않고 계획은 다시 대기 상태로 돌아가요.</p>
-          </NoticeCard>
+          {!completedAction && status?.availableAction === "CANCEL" && (
+            <NoticeCard disabled={pending || !status.hasActiveCase || status.status !== "WAITING"} onClick={() => void cancel()} title="실행을 멈추시고 싶으신가요?">
+              <p>본인이라면 전체 절차를 즉시 취소할 수 있어요.</p>
+              <p>멈추면 아무것도 실행되지 않고 계획은 다시 대기 상태로 돌아가요.</p>
+            </NoticeCard>
+          )}
 
-          <NoticeCard appeal disabled={pending || !status?.hasActiveCase || status.status !== "WAITING" || !disputeToken} onClick={() => void appeal()} title="무언가 잘못됐다면?">
-            <p>이의 제기 연락처는 사유와 증빙을 제출할 수 있어요.</p>
-            <p>이의가 접수되면 계획은 확인될 때까지 자동으로 멈춰요.</p>
-          </NoticeCard>
+          {!completedAction && status?.availableAction === "RAISE_OBJECTION" && (
+            <NoticeCard appeal disabled={pending || !status.hasActiveCase || status.status !== "WAITING"} onClick={() => void appeal()} title="무언가 잘못됐다면?">
+              <p>이의 제기 연락처는 사유와 증빙을 제출할 수 있어요.</p>
+              <p>이의가 접수되면 계획은 확인될 때까지 자동으로 멈춰요.</p>
+            </NoticeCard>
+          )}
+          {completedAction ? (
+            <p className="text-center text-sm font-semibold text-[#43306d]">
+              {completedAction === "CANCEL" ? "사후 인계 절차가 취소되었습니다." : "이의 제기가 접수되었습니다."}
+            </p>
+          ) : null}
           {error ? <p className="text-center text-sm text-red-600">{error}</p> : null}
         </div>
 
