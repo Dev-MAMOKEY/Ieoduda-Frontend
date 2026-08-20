@@ -1,10 +1,12 @@
 // 사후 인계 대기 기간 및 이의 제기 화면
 "use client";
 
+import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { getApiErrorMessage } from "@/lib/api/auth";
 import { cancelReleaseCase, createObjection, getWaitingStatus } from "@/lib/api/public";
 import type { ReleaseStatusResponse } from "@/lib/api/public-types";
 
@@ -65,13 +67,16 @@ export default function WaitingPage() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [disputeToken, setDisputeToken] = useState("");
   const statusLoaded = useRef(false);
   const requestInFlight = useRef(false);
   const query = () => new URLSearchParams(window.location.search);
   useEffect(() => {
     if (statusLoaded.current) return;
     statusLoaded.current = true;
-    const caseId = query().get("caseId");
+    const params = query();
+    const caseId = params.get("caseId");
+    setDisputeToken(params.get("disputeToken") ?? "");
     if (!caseId) { queueMicrotask(() => { setError("유효한 공개 절차 정보가 필요합니다."); setLoading(false); }); return; }
     getWaitingStatus(caseId)
       .then(setStatus)
@@ -84,13 +89,25 @@ export default function WaitingPage() {
     if (requestInFlight.current) return;
     requestInFlight.current = true;
     setPending(true);
-    try { setStatus(await cancelReleaseCase(caseId)); } catch (reason) { setError(reason instanceof Error ? reason.message : "절차를 취소하지 못했습니다."); } finally { requestInFlight.current = false; setPending(false); }
+    setError("");
+    try {
+      setStatus(await cancelReleaseCase(caseId));
+    } catch (reason) {
+      if (axios.isAxiosError(reason) && reason.response?.status === 409) {
+        try { setStatus(await getWaitingStatus(caseId)); } catch { /* 최신 상태 재조회 실패 시 기존 상태를 유지합니다. */ }
+        setError("현재 사건 상태에서는 취소할 수 없습니다.");
+      } else {
+        setError(getApiErrorMessage(reason, "절차를 취소하지 못했습니다."));
+      }
+    } finally {
+      requestInFlight.current = false;
+      setPending(false);
+    }
   };
   const appeal = async () => {
     const params = query();
     const caseId = params.get("caseId") ?? "";
-    const token = params.get("token") ?? "";
-    if (!caseId || !token) return setError("유효한 이의 제기 링크 정보가 필요합니다.");
+    if (!caseId || !disputeToken) return setError("유효한 이의 제기 링크 정보가 필요합니다.");
     if (requestInFlight.current) return;
     const objectionReason = window.prompt("이의 제기 사유를 입력해 주세요.")?.trim() ?? "";
     if (!objectionReason) return;
@@ -98,10 +115,14 @@ export default function WaitingPage() {
     setPending(true);
     setError("");
     try {
-      await createObjection(caseId, token, objectionReason);
+      await createObjection(caseId, disputeToken, objectionReason);
       setStatus(await getWaitingStatus(caseId));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "이의 제기를 접수하지 못했습니다.");
+      setError(
+        axios.isAxiosError(reason) && reason.response?.status === 401
+          ? "이의 제기 링크가 만료됐거나 올바르지 않습니다."
+          : getApiErrorMessage(reason, "이의 제기를 접수하지 못했습니다."),
+      );
     } finally {
       requestInFlight.current = false;
       setPending(false);
@@ -135,12 +156,12 @@ export default function WaitingPage() {
             </div>
           </section>
 
-          <NoticeCard disabled={pending || !status?.hasActiveCase} onClick={() => void cancel()} title="실행을 멈추시고 싶으신가요?">
+          <NoticeCard disabled={pending || !status?.hasActiveCase || status.status !== "WAITING"} onClick={() => void cancel()} title="실행을 멈추시고 싶으신가요?">
             <p>본인이라면 전체 절차를 즉시 취소할 수 있어요.</p>
             <p>멈추면 아무것도 실행되지 않고 계획은 다시 대기 상태로 돌아가요.</p>
           </NoticeCard>
 
-          <NoticeCard appeal disabled={pending || !status?.hasActiveCase} onClick={() => void appeal()} title="무언가 잘못됐다면?">
+          <NoticeCard appeal disabled={pending || !status?.hasActiveCase || status.status !== "WAITING" || !disputeToken} onClick={() => void appeal()} title="무언가 잘못됐다면?">
             <p>이의 제기 연락처는 사유와 증빙을 제출할 수 있어요.</p>
             <p>이의가 접수되면 계획은 확인될 때까지 자동으로 멈춰요.</p>
           </NoticeCard>
