@@ -45,7 +45,7 @@ function RecipientCard({ person }: { person: EmailRecipient }) {
 }
 
 export default function EmailPage() {
-  const [audit, setAudit] = useState<EmailAudit>({ totalCount: 0, summary: [], recipients: [] });
+  const [audit, setAudit] = useState<EmailAudit>({ totalCount: 0, summary: ["발송 0", "반송 0"], recipients: [] });
   const [caseId, setCaseId] = useState("");
   const [caseIdError, setCaseIdError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -118,8 +118,11 @@ export default function EmailPage() {
         <section className="flex flex-col gap-3.5">
           <h2 className="text-base font-bold leading-none lg:text-lg">수신자 총 {audit.totalCount}명</h2>
           <div className="flex gap-2.5">
-            <span className="rounded-[14px] bg-[#fbfafd] px-4 py-2.5 text-[13px] font-medium leading-none lg:rounded-[30px] lg:px-5 lg:py-3 lg:text-[15px]">발송 1</span>
-            <span className="rounded-[14px] bg-[#fbfafd] px-4 py-2.5 text-[13px] font-medium leading-none lg:rounded-[30px] lg:px-5 lg:py-3 lg:text-[15px]">반송 2</span>
+            {audit.summary.map((item) => (
+              <span className="rounded-[14px] bg-[#fbfafd] px-4 py-2.5 text-[13px] font-medium leading-none lg:rounded-[30px] lg:px-5 lg:py-3 lg:text-[15px]" key={item}>
+                {item}
+              </span>
+            ))}
           </div>
         </section>
 
