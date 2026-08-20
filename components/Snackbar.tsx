@@ -12,11 +12,20 @@ export function Snackbar() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setMessage("");
+
     const display = (nextMessage: string) => {
       if (!nextMessage) return;
       if (timerRef.current) clearTimeout(timerRef.current);
       setMessage(nextMessage);
-      timerRef.current = setTimeout(() => setMessage(""), DISPLAY_DURATION);
+      timerRef.current = setTimeout(() => {
+        setMessage("");
+        timerRef.current = null;
+      }, DISPLAY_DURATION);
     };
     const handleSnackbar = (event: Event) => display((event as CustomEvent<string>).detail);
 
@@ -24,7 +33,10 @@ export function Snackbar() {
     display(consumeNavigationSnackbar());
     return () => {
       window.removeEventListener(SNACKBAR_EVENT, handleSnackbar);
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
     };
   }, [pathname]);
 
